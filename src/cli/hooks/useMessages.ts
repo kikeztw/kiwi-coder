@@ -37,6 +37,12 @@ export function useMessages() {
     return addMessage({ role: 'agent', content, metadata });
   }, [addMessage]);
 
+  const updateMessage = useCallback((messageId: string, content: string) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId ? { ...msg, content } : msg
+    ));
+  }, []);
+
   const addToolMessage = useCallback((content: string, toolName: string, toolArgs?: Record<string, unknown>) => {
     return addMessage({ 
       role: 'tool', 
@@ -63,6 +69,7 @@ export function useMessages() {
     addMessage,
     addUserMessage,
     addAgentMessage,
+    updateMessage,
     addToolMessage,
     addSystemMessage,
     addDebugMessage,

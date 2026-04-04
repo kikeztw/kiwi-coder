@@ -30,13 +30,12 @@ interface AppProps {
 }
 
 export default function App({ projectPath }: AppProps) {
-  const { messages, setAllMessages, addUserMessage, addAgentMessage, addSystemMessage, addDebugMessage } = useMessages();
+  const { messages, setAllMessages, addUserMessage, addAgentMessage, updateMessage, addSystemMessage, addDebugMessage, clearMessages } = useMessages();
   const { session, setStatus, setProvider, setModel, loadPersistedSession } = useSession();
   const { view, showChat, showModelSelector, showSessionManager, isSessionSelector, isSessionManager } = useViewManager();
   const { exit } = useApp();
   
   const [currentAgent, setCurrentAgent] = useState(agentRegistry.getCurrentName());
-  const [streamingContent, setStreamingContent] = useState('');
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<PersistedSession | null>(null);
   const [sessionManagerMode, setSessionManagerMode] = useState<'select' | 'load' | 'delete'>('select');
@@ -237,10 +236,12 @@ export default function App({ projectPath }: AppProps) {
 
     if (debugMode) addDebugMessage('[PROCESS] Starting message processing');
     setStatus('thinking');
-    setStreamingContent('');
 
     const agent = agentRegistry.getCurrent();
     if (debugMode) addDebugMessage(`[PROCESS] Agent: ${agent.name}`);
+
+    // Add empty agent message that will be updated during streaming
+    const agentMessageId = addAgentMessage('');
 
     // Filter out debug messages and empty messages from context
     const contextMessages = messages
@@ -277,7 +278,8 @@ export default function App({ projectPath }: AppProps) {
       for await (const chunk of agent.process(userInput, context)) {
         chunkCount++;
         fullResponse += chunk;
-        setStreamingContent(fullResponse);
+        updateMessage(agentMessageId, fullResponse);
+        
         if (debugMode && chunkCount % 5 === 0) {
           addDebugMessage(`[PROCESS] Received chunk ${chunkCount}`);
         }
@@ -286,12 +288,6 @@ export default function App({ projectPath }: AppProps) {
       if (debugMode) {
         addDebugMessage(`[PROCESS] Complete. Total chunks: ${chunkCount}, length: ${fullResponse.length}`);
       }
-
-      // Only add agent message if we got a response
-      if (fullResponse.trim()) {
-        addAgentMessage(fullResponse);
-      }
-      setStreamingContent('');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       if (debugMode) {
@@ -393,7 +389,7 @@ export default function App({ projectPath }: AppProps) {
           onCancel={() => showChat()}
         />
       ) : (
-        <Box flexDirection="column" height="100%">
+        <Box flexDirection="column">
           <Header
             modelName={getAllModels().find(m => m.id === `${session.modelProvider}/${session.modelName}`)?.name}
             modelProvider={session.modelProvider}
@@ -401,7 +397,7 @@ export default function App({ projectPath }: AppProps) {
             status={session.status}
           />
 
-          <Chat messages={messages} streamingContent={streamingContent} />
+          <Chat messages={messages} />
 
           <StatusBar
             session={session}

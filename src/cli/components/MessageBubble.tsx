@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Text } from 'ink';
 import { bubbleTheme } from '../theme/colors.js';
 import type { Message } from '../hooks/useMessages.js';
@@ -6,7 +7,7 @@ interface MessageProps {
   message: Message;
 }
 
-export function MessageBubble({ message }: MessageProps) {
+export const MessageBubble = memo(function MessageBubble({ message }: MessageProps) {
   const { role, content, metadata } = message;
 
   switch (role) {
@@ -14,9 +15,9 @@ export function MessageBubble({ message }: MessageProps) {
       return (
         <Box 
           flexDirection="column" 
-          marginBottom={1}
+          marginBottom={0}
           paddingX={1}
-          paddingY={1}
+          paddingY={0}
         >
           <Text color={bubbleTheme.user.text} bold>
             {bubbleTheme.user.icon} 
@@ -31,9 +32,9 @@ export function MessageBubble({ message }: MessageProps) {
       return (
         <Box 
           flexDirection="column" 
-          marginBottom={1}
+          marginBottom={0}
           paddingX={1}
-          paddingY={1}
+          paddingY={0}
         >
           <Text color={bubbleTheme.agent.text} bold>
             {bubbleTheme.agent.icon} 
@@ -48,9 +49,9 @@ export function MessageBubble({ message }: MessageProps) {
       return (
         <Box 
           flexDirection="column" 
-          marginBottom={1}
+          marginBottom={0}
           paddingX={1}
-          paddingY={1}
+          paddingY={0}
         >
           <Text color={bubbleTheme.tool.text} bold>
             {bubbleTheme.tool.icon} {metadata?.toolName || 'Tool'}
@@ -70,7 +71,7 @@ export function MessageBubble({ message }: MessageProps) {
       return (
         <Box 
           flexDirection="column" 
-          marginBottom={1}
+          marginBottom={0}
           paddingX={1}
         >
           <Text color={bubbleTheme.system.text} dimColor>
@@ -83,7 +84,7 @@ export function MessageBubble({ message }: MessageProps) {
       return (
         <Box 
           flexDirection="column" 
-          marginBottom={1}
+          marginBottom={0}
           paddingX={1}
         >
           <Text color="gray" dimColor>
@@ -96,15 +97,15 @@ export function MessageBubble({ message }: MessageProps) {
       return (
         <Box 
           flexDirection="column" 
-          marginBottom={1}
+          marginBottom={0}
           paddingX={1}
-          paddingY={1}
+          paddingY={0}
         >
           <Text>{content}</Text>
         </Box>
       );
   }
-}
+});
 
 // Keep MessageComponent as alias for backward compatibility
 export const MessageComponent = MessageBubble;

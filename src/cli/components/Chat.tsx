@@ -1,27 +1,28 @@
+import { memo, useMemo } from 'react';
 import { Box, Text } from 'ink';
-import { colors, bubbleTheme } from '../theme/colors.js';
+import { colors } from '../theme/colors.js';
 import type { Message } from '../hooks/useMessages.js';
 import { MessageBubble } from './MessageBubble.js';
 
 interface ChatProps {
   messages: Message[];
-  streamingContent?: string;
 }
 
 // Maximum messages to keep in view to prevent memory issues
-const MAX_VISIBLE_MESSAGES = 50;
+const MAX_VISIBLE_MESSAGES = 5;
 
-export function Chat({ messages, streamingContent }: ChatProps) {
+export const Chat = memo(function Chat({ messages }: ChatProps) {
   // Keep only recent messages to prevent scroll issues
-  const visibleMessages = messages.slice(-MAX_VISIBLE_MESSAGES);
+  const visibleMessages = useMemo(
+    () => messages.slice(-MAX_VISIBLE_MESSAGES),
+    [messages]
+  );
   
   return (
     <Box 
-      flexDirection="column" 
-      flexGrow={1}
-      overflowY="hidden"
+      flexDirection="column"
     >
-      {messages.length === 0 && !streamingContent ? (
+      {messages.length === 0 ? (
         <Box 
           flexDirection="column" 
           alignItems="center" 
@@ -37,27 +38,12 @@ export function Chat({ messages, streamingContent }: ChatProps) {
           </Text>
         </Box>
       ) : (
-        <Box flexDirection="column" paddingX={1} paddingY={1}>
+        <Box flexDirection="column" paddingX={1}>
           {visibleMessages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}
-          {streamingContent && (
-            <Box 
-              flexDirection="column" 
-              marginBottom={1}
-              paddingX={1}
-              paddingY={1}
-            >
-              <Text color={bubbleTheme.agent.text} bold>
-                {bubbleTheme.agent.icon} 
-              </Text>
-              <Text color={bubbleTheme.agent.text}>
-                {streamingContent}▌
-              </Text>
-            </Box>
-          )}
         </Box>
       )}
     </Box>
   );
-}
+});
