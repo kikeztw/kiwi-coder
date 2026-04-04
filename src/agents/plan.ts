@@ -1,4 +1,4 @@
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
 import { separateMessages } from './utils.js';
@@ -21,7 +21,7 @@ Focus on high-level design and strategy.`,
       const model = getModel(context.modelProvider, context.modelName);
       const { systemPrompt, chatMessages } = separateMessages(context, this.systemPrompt);
 
-      const result = streamText({
+      const result = await generateText({
         model,
         system: systemPrompt,
         messages: [
@@ -30,9 +30,7 @@ Focus on high-level design and strategy.`,
         ],
       });
 
-      for await (const textPart of result.textStream) {
-        yield textPart;
-      }
+      yield result.text;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       yield `\n[Error: ${errorMessage}]`;

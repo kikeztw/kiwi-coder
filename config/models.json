@@ -22,6 +22,18 @@
         { "id": "anthropic/claude-opus-4-5-20251101", "name": "Claude Opus 4.5" }
       ],
       "envKey": "ANTHROPIC_API_KEY"
+    },
+    "google": {
+      "name": "Google Generative AI",
+      "models": [
+        { "id": "google/gemini-2.5-flash", "name": "Gemini 2.5 Flash", "default": true },
+        { "id": "google/gemini-2.5-pro", "name": "Gemini 2.5 Pro" },
+        { "id": "google/gemini-2.0-flash", "name": "Gemini 2.0 Flash" },
+        { "id": "google/gemini-2.0-pro", "name": "Gemini 2.0 Pro" },
+        { "id": "google/gemini-1.5-flash", "name": "Gemini 1.5 Flash" },
+        { "id": "google/gemini-1.5-pro", "name": "Gemini 1.5 Pro" }
+      ],
+      "envKey": "GOOGLE_GENERATIVE_AI_API_KEY"
     }
   }
 }

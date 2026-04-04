@@ -1,17 +1,18 @@
 import { memo, useMemo } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, Static, Spacer } from 'ink';
 import { colors } from '../theme/colors.js';
 import type { Message } from '../hooks/useMessages.js';
 import { MessageBubble } from './MessageBubble.js';
 
 interface ChatProps {
   messages: Message[];
+  statusBar?: React.ReactNode;
 }
 
 // Maximum messages to keep in view to prevent memory issues
-const MAX_VISIBLE_MESSAGES = 5;
+const MAX_VISIBLE_MESSAGES = 50;
 
-export const Chat = memo(function Chat({ messages }: ChatProps) {
+export const Chat = memo(function Chat({ messages, statusBar }: ChatProps) {
   // Keep only recent messages to prevent scroll issues
   const visibleMessages = useMemo(
     () => messages.slice(-MAX_VISIBLE_MESSAGES),
@@ -39,11 +40,13 @@ export const Chat = memo(function Chat({ messages }: ChatProps) {
         </Box>
       ) : (
         <Box flexDirection="column" paddingX={1}>
-          {visibleMessages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))}
+          {/* Static prevents re-rendering of all messages on new additions */}
+          <Static items={visibleMessages}>
+            {(message: Message) => (<MessageBubble key={message.id} message={message} />)}
+          </Static>
         </Box>
       )}
     </Box>
   );
 });
+

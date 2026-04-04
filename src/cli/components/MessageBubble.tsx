@@ -9,7 +9,6 @@ interface MessageProps {
 
 export const MessageBubble = memo(function MessageBubble({ message }: MessageProps) {
   const { role, content, metadata } = message;
-
   switch (role) {
     case 'user':
       return (

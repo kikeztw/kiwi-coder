@@ -1,6 +1,7 @@
 import { config as dotenvConfig } from 'dotenv';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -163,6 +164,10 @@ export function getModel(provider: string, modelName: string): LanguageModel {
     case 'anthropic': {
       const anthropic = createAnthropic({ apiKey });
       return anthropic(modelName);
+    }
+    case 'google': {
+      const google = createGoogleGenerativeAI({ apiKey });
+      return google(modelName);
     }
     default:
       throw new Error(`Unsupported provider: ${provider}`);
