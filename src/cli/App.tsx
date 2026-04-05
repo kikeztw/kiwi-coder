@@ -4,7 +4,6 @@ import { ModelSelector } from './components/ModelSelector.js';
 import { SessionManager } from './components/SessionManager.js';
 import { SessionSelector } from './components/SessionSelector.js';
 import { ChatView } from './components/ChatView.js';
-import { StatusBar } from './components/StatusBar.js';
 import { useSession } from './hooks/useSession.js';
 import { useViewManager } from './hooks/useViewManager.js';
 import { agentRegistry } from '../agents/index.js';
@@ -237,7 +236,6 @@ export default function App({ projectPath }: AppProps) {
 
   return (
     <Box flexDirection="column">
-      {/* <StatusBar session={session} currentAgent={currentAgent} modelDisplayName={modelDisplayName} /> */}
       <ChatView
         session={session}
         currentAgent={currentAgent}
@@ -248,3 +246,4 @@ export default function App({ projectPath }: AppProps) {
     </Box>
   );
 }
+

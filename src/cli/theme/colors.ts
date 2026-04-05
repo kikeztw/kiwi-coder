@@ -52,9 +52,9 @@ export const getColor = (type: keyof typeof colors): string => colors[type];
 
 // New semantic color helpers for bubble theme
 export const bubbleTheme = {
-  user: { bg: colors.bgUser, border: colors.borderUser, text: colors.accentUser, icon: '👤' },
-  agent: { bg: colors.bgAgent, border: colors.borderAgent, text: colors.accentAgent, icon: '🤖' },
-  thinking: { bg: colors.bgThinking, border: colors.borderThinking, text: colors.accentThinking, icon: '💭' },
-  system: { bg: colors.bgSecondary, border: colors.borderSubtle, text: colors.accentSystem, icon: 'ℹ' },
-  tool: { bg: colors.bgSecondary, border: colors.accentTool, text: colors.accentTool, icon: '⚡' },
+  user: { bg: colors.bgUser, border: colors.borderUser, text: colors.accentUser, icon: '> ' },
+  agent: { bg: colors.bgAgent, border: colors.borderAgent, text: colors.accentAgent, icon: '• ' },
+  thinking: { bg: colors.bgThinking, border: colors.borderThinking, text: colors.accentThinking, icon: '💭 ' },
+  system: { bg: colors.bgSecondary, border: colors.borderSubtle, text: colors.accentSystem, icon: 'ℹ ' },
+  tool: { bg: colors.bgSecondary, border: colors.accentTool, text: colors.accentTool, icon: '⚡ ' },
 };

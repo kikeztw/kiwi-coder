@@ -34,36 +34,11 @@ export function StatusBar({ session, currentAgent = 'coder', modelDisplayName }:
   }, [status]);
 
   const isLoading = useMemo(() => status === 'thinking' || status === 'acting', [status]);
-  
   // Format model display: use display name if available, otherwise fall back to provider/model
   const modelDisplay = useMemo(() => modelDisplayName || `${modelProvider}/${modelName}`, [modelDisplayName, modelProvider, modelName]);
 
-  const statusColor = useMemo(() => getStatusColor(), [getStatusColor]);
-  const statusText = useMemo(() => getStatusText(), [getStatusText]);
-
   return (
     <Box flexDirection="column" borderStyle="single" borderColor={colors.borderSubtle}>
-      {/* Top row: Logo, Model, Agent, Status */}
-      <Box justifyContent="space-between" paddingX={1} paddingY={0}>
-        <Box gap={2}>
-          <Text color={colors.highlight} bold>
-            🤖 Kiwi
-          </Text>
-          <Text color={colors.textSecondary}>
-            ({modelProvider}/{modelDisplayName || modelName})
-          </Text>
-        </Box>
-        <Box gap={2}>
-          <Text color={colors.textMuted}>
-            [{currentAgent}]
-          </Text>
-          <Text color={statusColor}>
-            {statusText}
-          </Text>
-        </Box>
-      </Box>
-      
-      {/* Bottom row: Status bar with spinner and mode */}
       <Box justifyContent="space-between" paddingX={1} paddingY={0}>
         <Box gap={2}>
           <Text color={getStatusColor()}>

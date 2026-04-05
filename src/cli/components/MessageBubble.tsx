@@ -7,16 +7,19 @@ interface MessageProps {
   message: Message;
 }
 
+const paddingX = 1;
+const paddingY = 2;
+
 export const MessageBubble = memo(function MessageBubble({ message }: MessageProps) {
   const { role, content, metadata } = message;
   switch (role) {
     case 'user':
       return (
         <Box 
-          flexDirection="column" 
           marginBottom={0}
-          paddingX={1}
-          paddingY={0}
+          paddingX={paddingX}
+          paddingY={paddingY}
+          alignItems="center"
         >
           <Text color={bubbleTheme.user.text} bold>
             {bubbleTheme.user.icon} 
@@ -30,10 +33,10 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessagePro
     case 'agent':
       return (
         <Box 
-          flexDirection="column" 
           marginBottom={0}
-          paddingX={1}
-          paddingY={0}
+          paddingX={paddingX}
+          paddingY={paddingY}
+          alignItems="center"
         >
           <Text color={bubbleTheme.agent.text} bold>
             {bubbleTheme.agent.icon} 
@@ -47,10 +50,10 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessagePro
     case 'tool':
       return (
         <Box 
-          flexDirection="column" 
           marginBottom={0}
-          paddingX={1}
-          paddingY={0}
+          paddingX={paddingX}
+          paddingY={paddingY}
+          alignItems="center"
         >
           <Text color={bubbleTheme.tool.text} bold>
             {bubbleTheme.tool.icon} {metadata?.toolName || 'Tool'}
@@ -69,10 +72,9 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessagePro
     case 'system':
       return (
         <Box 
-          flexDirection="column" 
           marginBottom={0}
-          paddingX={1}
-        >
+          paddingX={paddingX}
+          >
           <Text color={bubbleTheme.system.text} dimColor>
             {bubbleTheme.system.icon} {content}
           </Text>
@@ -82,9 +84,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessagePro
     case 'debug':
       return (
         <Box 
-          flexDirection="column" 
           marginBottom={0}
-          paddingX={1}
+          paddingX={paddingX}
         >
           <Text color="gray" dimColor>
             🐛 {content}
@@ -95,10 +96,9 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessagePro
     default:
       return (
         <Box 
-          flexDirection="column" 
           marginBottom={0}
-          paddingX={1}
-          paddingY={0}
+          paddingX={paddingX}
+          paddingY={paddingY}
         >
           <Text>{content}</Text>
         </Box>
