@@ -5,7 +5,7 @@ export interface Agent {
   description: string;
   systemPrompt: string;
   tools?: Record<string, Tool>;
-  process(message: string, context: AgentContext): AsyncIterable<string>;
+  process(message: string, context: AgentContext): Promise<ModelMessage[]>;
 }
 
 export interface AgentContext {

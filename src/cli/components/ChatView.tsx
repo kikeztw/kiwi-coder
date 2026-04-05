@@ -1,48 +1,35 @@
 import { memo, useState, useCallback } from 'react';
 import { Box } from 'ink';
-import { agentRegistry } from '../../agents/index.js';
-import type { Session } from '../hooks/useSession.js';
+import { ModelMessage } from 'ai';
 import { useInput } from 'ink';
+
+import { agentRegistry } from '../../agents/index.js';
+import { useSessionContext } from '../context/SessionContext.js';
 import { MessageBubble } from './MessageBubble.js';
 import { StatusBar } from './StatusBar.js';
 import { WelcomeScreen } from './WelcomeScreen.js';
 import { InputBox } from './InputBox.js';
-export interface Message {
-  id: string;
-  role: 'user' | 'agent' | 'system';
-  content: string;
-  timestamp: Date;
-}
-
 
 interface ChatViewProps {
-  session: Session;
-  currentAgent: string;
-  modelDisplayName?: string;
   onSubmit: (value: string) => void;
   onExit: () => void;
 }
 
 function ChatViewInternal({
-  session,
-  currentAgent,
-  modelDisplayName,
   onSubmit,
   onExit,
 }: ChatViewProps) {
+  const { session, currentAgent, modelDisplayName, addMessage: addMessageToSession } = useSessionContext();
+  
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ModelMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const addMessage = useCallback((message: Omit<Message, 'id' | 'timestamp'>) => {
-    const newMessage: Message = {
-      ...message,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, newMessage]);
-    return newMessage;
-  }, []);
+  const addMessage = useCallback((message: ModelMessage) => {
+    setMessages(prev => [...prev, message]);
+    // Also add to session for persistence
+    addMessageToSession(message);
+  }, [addMessageToSession]);
 
   const processMessage = useCallback(async (userInput: string) => {
     setIsProcessing(true);
@@ -55,27 +42,17 @@ function ChatViewInternal({
 
     const agent = agentRegistry.getCurrent();
 
-    const contextMessages = messages
-      .filter(m => m.content.trim() !== '')
-      .map(m => ({
-        role: m.role === 'agent' ? 'assistant' : m.role === 'user' ? 'user' : 'system',
-        content: m.content,
-      } as { role: 'user' | 'assistant' | 'system'; content: string }));
-
     try {
-      // generateText returns complete response in single chunk
-      for await (const chunk of agent.process(userInput, {
-        messages: contextMessages,
+       const response = await agent.process(userInput, {
+        messages,
         sessionId: session.id,
         modelProvider: session.modelProvider,
         modelName: session.modelName,
-      })) {
-        // Add complete agent response directly
-        addMessage({
-          role: 'agent',
-          content: chunk,
-        });
-      }
+      });
+
+      response.forEach(element => {
+        addMessage(element);
+      });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       addMessage({
@@ -93,8 +70,16 @@ function ChatViewInternal({
       return;
     }
 
+    // Check if it's a command (starts with /)
+    const isCommand = value.startsWith('/');
+    
+    // Always call onSubmit to handle commands
     onSubmit(value);
-    processMessage(value);
+    
+    // Only process with AI if it's not a command
+    if (!isCommand) {
+      processMessage(value);
+    }
   }, [processMessage, onSubmit, onExit]);
 
   useInput((character, key) => {
@@ -115,16 +100,12 @@ function ChatViewInternal({
       {messages.length === 0 && <WelcomeScreen />}
       
       <Box flexDirection="column" paddingX={1}>
-        {messages.map(message => (
-          <MessageBubble key={message.id} message={message} />
+        {messages.map((message, index) => (
+          <MessageBubble key={index} message={message} />
         ))}
       </Box>
       
-      <StatusBar
-        session={session}
-        currentAgent={currentAgent}
-        modelDisplayName={modelDisplayName}
-      />
+      <StatusBar />
       
       <InputBox input={input} isProcessing={isProcessing} />
     </Box>

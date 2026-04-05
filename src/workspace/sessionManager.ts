@@ -1,8 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import type { Message } from '../cli/hooks/useMessages.js';
+import { ModelMessage } from 'ai';
 
+export const KIWI_DIR = '.kiwi';
 export const SESSIONS_DIR = '.kiwi/sessions';
+export const ACTIVE_SESSION_FILE = '.kiwi/session.json';
 
 export interface PersistedSession {
   id: string;
@@ -16,7 +18,7 @@ export interface PersistedSession {
     name: string;
   };
   agent: string;
-  messages: Message[];
+  messages: ModelMessage[];
   messageCount: number;
   metadata?: {
     tags?: string[];
@@ -171,4 +173,79 @@ export function cleanupOldSessions(projectPath: string, maxSessions: number = 10
   for (const session of toDelete) {
     deleteSession(projectPath, session.id);
   }
+}
+
+// Active session management (replaces .kiwi/config)
+function getActiveSessionPath(projectPath: string): string {
+  return join(projectPath, ACTIVE_SESSION_FILE);
+}
+
+function ensureKiwiDir(projectPath: string): void {
+  const dir = join(projectPath, KIWI_DIR);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
+export function loadActiveSession(projectPath: string): PersistedSession | null {
+  const path = getActiveSessionPath(projectPath);
+  if (!existsSync(path)) {
+    return null;
+  }
+
+  try {
+    const content = readFileSync(path, 'utf-8');
+    const session = JSON.parse(content) as PersistedSession;
+    return session;
+  } catch (error) {
+    console.warn('Failed to load active session:', error);
+    return null;
+  }
+}
+
+export function saveActiveSession(projectPath: string, session: PersistedSession): void {
+  ensureKiwiDir(projectPath);
+  const path = getActiveSessionPath(projectPath);
+  
+  const updatedSession: PersistedSession = {
+    ...session,
+    lastActive: new Date().toISOString(),
+    messageCount: session.messages.length,
+  };
+
+  try {
+    writeFileSync(path, JSON.stringify(updatedSession, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn('Failed to save active session:', error);
+  }
+}
+
+export function updateSessionModel(
+  projectPath: string,
+  sessionId: string,
+  provider: string,
+  model: string,
+  modelId: string,
+  name: string
+): PersistedSession {
+  const session = loadSession(projectPath, sessionId);
+  if (!session) {
+    throw new Error(`Session ${sessionId} not found`);
+  }
+
+  const updated: PersistedSession = {
+    ...session,
+    model: { provider, model, modelId, name },
+    lastActive: new Date().toISOString(),
+  };
+
+  saveSession(projectPath, updated);
+  
+  // Also update active session if it's the same
+  const active = loadActiveSession(projectPath);
+  if (active && active.id === sessionId) {
+    saveActiveSession(projectPath, updated);
+  }
+
+  return updated;
 }

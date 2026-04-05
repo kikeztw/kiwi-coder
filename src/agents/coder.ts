@@ -1,12 +1,14 @@
-import { generateText } from 'ai';
+import { generateText, ModelMessage, convertToModelMessages, stepCountIs } from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
 import { separateMessages } from './utils.js';
+import { filesystemTools } from '@/tools/filesystem.js';
 
-export const coderAgent: Agent = {
-  name: 'coder',
-  description: 'Agent specialized in coding tasks',
-  systemPrompt: `You are an expert coding assistant. Your task is to help users write, read, and modify code files.
+export class CoderAgent implements Agent {
+
+  public readonly name = 'coder';
+  public readonly description = 'Agent specialized in coding tasks';
+  public readonly systemPrompt = `You are an expert coding assistant. Your task is to help users write, read, and modify code files.
 
 When helping users:
 1. First understand the existing code by reading relevant files
@@ -14,9 +16,9 @@ When helping users:
 3. Use the tools to implement the solution
 4. Verify the changes work correctly
 
-Always operate within the workspace directory for security.`,
+Always operate within the workspace directory for security.`;
 
-  async *process(message: string, context: AgentContext): AsyncIterable<string> {
+  async process(message: string, context: AgentContext): Promise<ModelMessage[]> {
     try {
       const model = getModel(context.modelProvider, context.modelName);
       const { systemPrompt, chatMessages } = separateMessages(context, this.systemPrompt);
@@ -24,16 +26,18 @@ Always operate within the workspace directory for security.`,
       const result = await generateText({
         model,
         system: systemPrompt,
-        messages: [
-          ...chatMessages,
-          { role: 'user', content: message },
-        ],
+        tools: { ...filesystemTools },
+        stopWhen: stepCountIs(10),
+        messages: [...chatMessages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
       });
 
-      yield result.text;
+      return result.response.messages as ModelMessage[];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      yield `\n[Error: ${errorMessage}]`;
+      return [{ role: 'assistant', content: `\n[Error: ${errorMessage}]` }] as ModelMessage[];
     }
-  },
-};
+  }
+}
+
+// Export singleton instance for backward compatibility
+export const coderAgent: Agent = new CoderAgent();

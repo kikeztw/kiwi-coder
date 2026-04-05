@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { randomUUID } from 'crypto';
 import type { PersistedSession } from '../../workspace/sessionManager.js';
+import { loadWorkspaceConfig } from '../../workspace/config.js';
 
 export interface Session {
   id: string;
@@ -10,14 +11,27 @@ export interface Session {
   modelName: string;
 }
 
-export function useSession() {
+export function useSession(projectPath: string) {
+  // Load config from .kiwi/config
+  const config = loadWorkspaceConfig(projectPath);
+  
   const [session, setSession] = useState<Session>({
     id: randomUUID(),
     startTime: new Date(),
     status: 'idle',
-    modelProvider: process.env.MODEL_PROVIDER || 'openai',
-    modelName: process.env.MODEL_NAME || 'gpt-4o',
+    modelProvider: config.model.provider,
+    modelName: config.model.model,
   });
+
+  // Reload session when config changes
+  useEffect(() => {
+    const config = loadWorkspaceConfig(projectPath);
+    setSession(prev => ({
+      ...prev,
+      modelProvider: config.model.provider,
+      modelName: config.model.model,
+    }));
+  }, [projectPath]);
 
   const setStatus = useCallback((status: Session['status']) => {
     setSession(prev => ({ ...prev, status }));

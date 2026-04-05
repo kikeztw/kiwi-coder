@@ -1,7 +1,21 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 
-export const WORKSPACE_CONFIG_FILENAME = '.kiwi.json';
+export const KIWI_DIR = '.kiwi';
+export const WORKSPACE_CONFIG_FILENAME = 'config';
+
+// Full path to config file (e.g., .kiwi/config)
+export function getConfigPath(projectPath: string): string {
+  return join(projectPath, KIWI_DIR, WORKSPACE_CONFIG_FILENAME);
+}
+
+// Ensure .kiwi directory exists
+export function ensureKiwiDir(projectPath: string): void {
+  const kiwiDir = join(projectPath, KIWI_DIR);
+  if (!existsSync(kiwiDir)) {
+    mkdirSync(kiwiDir, { recursive: true });
+  }
+}
 
 export interface ModelConfig {
   provider: string;
@@ -36,10 +50,54 @@ export function getDefaultConfig(projectPath: string): WorkspaceConfig {
   };
 }
 
-export function loadWorkspaceConfig(projectPath: string): WorkspaceConfig {
-  const configPath = join(projectPath, WORKSPACE_CONFIG_FILENAME);
+const OLD_CONFIG_FILENAME = '.kiwi.json';
+
+function migrateOldConfig(projectPath: string): WorkspaceConfig | null {
+  const oldPath = join(projectPath, OLD_CONFIG_FILENAME);
+  if (!existsSync(oldPath)) {
+    return null;
+  }
   
+  try {
+    const content = readFileSync(oldPath, 'utf-8');
+    const parsed = JSON.parse(content) as WorkspaceConfig;
+    
+    // Migrate to new location
+    ensureKiwiDir(projectPath);
+    saveWorkspaceConfig(projectPath, parsed);
+    
+    // Remove old config file
+    try {
+      unlinkSync(oldPath);
+    } catch {
+      // Ignore deletion errors
+    }
+    
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function loadWorkspaceConfig(projectPath: string): WorkspaceConfig {
+  const configPath = getConfigPath(projectPath);
+  
+  // Check for new config first
   if (!existsSync(configPath)) {
+    // Try to migrate old config if it exists
+    const migratedConfig = migrateOldConfig(projectPath);
+    if (migratedConfig) {
+      // Validate and update projectPath if needed
+      if (migratedConfig.projectPath !== projectPath) {
+        migratedConfig.projectPath = projectPath;
+        migratedConfig.lastUpdated = new Date().toISOString();
+        saveWorkspaceConfig(projectPath, migratedConfig);
+      }
+      return migratedConfig;
+    }
+    
+    // No config exists, create default
+    ensureKiwiDir(projectPath);
     const defaultConfig = getDefaultConfig(projectPath);
     saveWorkspaceConfig(projectPath, defaultConfig);
     return defaultConfig;
@@ -57,6 +115,13 @@ export function loadWorkspaceConfig(projectPath: string): WorkspaceConfig {
       return defaultConfig;
     }
     
+    // Validate projectPath - update if different
+    if (parsed.projectPath !== projectPath) {
+      parsed.projectPath = projectPath;
+      parsed.lastUpdated = new Date().toISOString();
+      saveWorkspaceConfig(projectPath, parsed);
+    }
+    
     return parsed;
   } catch (error) {
     console.warn('Failed to load workspace config:', error);
@@ -70,7 +135,8 @@ export function saveWorkspaceConfig(
   projectPath: string,
   config: Partial<WorkspaceConfig>
 ): void {
-  const configPath = join(projectPath, WORKSPACE_CONFIG_FILENAME);
+  ensureKiwiDir(projectPath);
+  const configPath = getConfigPath(projectPath);
   
   const fullConfig: WorkspaceConfig = {
     version: config.version || DEFAULT_VERSION,

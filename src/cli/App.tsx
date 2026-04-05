@@ -1,129 +1,81 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Box, useInput, useApp } from 'ink';
 import { ModelSelector } from './components/ModelSelector.js';
 import { SessionManager } from './components/SessionManager.js';
 import { SessionSelector } from './components/SessionSelector.js';
 import { ChatView } from './components/ChatView.js';
-import { useSession } from './hooks/useSession.js';
+import { SessionProvider, useSessionContext } from './context/SessionContext.js';
 import { useViewManager } from './hooks/useViewManager.js';
 import { agentRegistry } from '../agents/index.js';
 import { parseCommand } from '../router/commandRouter.js';
-import { getAllModels } from '../providers/index.js';
-import { loadWorkspaceConfig, updateModelInConfig } from '../workspace/config.js';
-import { listSessions, loadSession, saveSession, createSession, deleteSession, type PersistedSession, type SessionInfo } from '../workspace/sessionManager.js';
 import { clearTerminal } from './utils/terminal.js';
 
-interface AppProps {
-  projectPath: string;
-}
 
-export default function App({ projectPath }: AppProps) {
-  const { session, setProvider, setModel, loadPersistedSession } = useSession();
+
+function AppContent() {
+  const { 
+    session, 
+    currentAgent, 
+    setCurrentAgent,
+    sessions,
+    selectSession,
+    createSession,
+    deleteCurrentSession,
+    updateModelAndSave,
+    saveCurrentSession,
+    loadSessions,
+  } = useSessionContext();
+  
   const { view, showChat, showModelSelector, showSessionManager, isSessionSelector, isSessionManager } = useViewManager();
   const { exit } = useApp();
   
-  const [currentAgent, setCurrentAgent] = useState(agentRegistry.getCurrentName());
-  const [sessions, setSessions] = useState<SessionInfo[]>([]);
-  const [currentSession, setCurrentSession] = useState<PersistedSession | null>(null);
   const [sessionManagerMode, setSessionManagerMode] = useState<'select' | 'load' | 'delete'>('select');
-
-  // Load sessions on mount
-  useEffect(() => {
-    const loadedSessions = listSessions(projectPath);
-    setSessions(loadedSessions);
-    
-    if (loadedSessions.length === 0) {
-      // No existing sessions, create new one
-      const config = loadWorkspaceConfig(projectPath);
-      const newSession = createSession(
-        projectPath,
-        config.model,
-        agentRegistry.getCurrentName()
-      );
-      setCurrentSession(newSession);
-      loadPersistedSession(newSession);
-      showChat();
-    }
-  }, [projectPath, loadPersistedSession, showChat]);
 
   // Handle session selection
   const handleSessionSelect = useCallback((sessionId: string) => {
-    const loaded = loadSession(projectPath, sessionId);
-    if (loaded) {
-      setCurrentSession(loaded);
-      loadPersistedSession(loaded);
-      // Update model from session
-      setProvider(loaded.model.provider);
-      setModel(loaded.model.model);
-      showChat();
-    }
-  }, [projectPath, loadPersistedSession, setProvider, setModel, showChat]);
+    selectSession(sessionId);
+    showChat();
+  }, [selectSession, showChat]);
 
   // Handle session manager selection
   const handleSessionManagerSelect = useCallback((sessionId: string) => {
     if (sessionManagerMode === 'delete') {
-      deleteSession(projectPath, sessionId);
-      setSessions(listSessions(projectPath));
+      deleteCurrentSession();
+      loadSessions();
       showChat();
     } else {
       handleSessionSelect(sessionId);
     }
-  }, [sessionManagerMode, projectPath, handleSessionSelect]);
+  }, [sessionManagerMode, deleteCurrentSession, loadSessions, showChat, handleSessionSelect]);
 
   // Handle session deletion
-  const handleSessionDelete = useCallback((sessionId: string) => {
-    deleteSession(projectPath, sessionId);
-    setSessions(listSessions(projectPath));
+  const handleSessionDelete = useCallback((_sessionId: string) => {
+    deleteCurrentSession();
+    loadSessions();
     showChat();
-  }, [projectPath]);
+  }, [deleteCurrentSession, loadSessions, showChat]);
 
   // Handle model selection
   const handleModelSelect = useCallback((provider: string, model: string, modelId: string) => {
-    setProvider(provider);
-    setModel(model);
-    const modelInfo = getAllModels().find(m => m.id === modelId);
-    // Save to workspace config
-    updateModelInConfig(projectPath, provider, model, modelId, modelInfo?.name || model);
-    // Update current session model
-    if (currentSession) {
-      const updated = {
-        ...currentSession,
-        model: {
-          provider,
-          model,
-          modelId,
-          name: modelInfo?.name || model,
-        },
-      };
-      setCurrentSession(updated);
-      saveSession(projectPath, updated);
-    }
+    updateModelAndSave(provider, model, modelId, model);
     clearTerminal();
     showChat();
-  }, [projectPath, currentSession, setProvider, setModel]);
+  }, [updateModelAndSave, showChat]);
 
   // Handle new session
   const handleNewSession = useCallback(() => {
-    const config = loadWorkspaceConfig(projectPath);
-    const newSession = createSession(
-      projectPath,
-      config.model,
-      agentRegistry.getCurrentName()
-    );
-    setCurrentSession(newSession);
-    loadPersistedSession(newSession);
+    saveCurrentSession();
+    createSession(agentRegistry.getCurrentName());
+    loadSessions();
     showChat();
-  }, [projectPath, loadPersistedSession, showChat]);
+  }, [saveCurrentSession, createSession, loadSessions, showChat]);
 
   // Clear terminal and exit
   const handleExit = useCallback(() => {
-    // Save current session before exit
-    if (currentSession) {
-      saveSession(projectPath, currentSession);
-    }
+    saveCurrentSession();
     clearTerminal();
     exit();
-  }, [exit, currentSession, projectPath]);
+  }, [saveCurrentSession, exit]);
 
   // Handle Ctrl+C to exit (only when not in selector/manager)
   useInput((input, key) => {
@@ -132,12 +84,11 @@ export default function App({ projectPath }: AppProps) {
     }
   }, { isActive: !isSessionSelector && !isSessionManager });
 
-  // Handle commands (simplified - now handled in ChatView mostly)
+  // Handle commands
   const handleSubmit = useCallback((value: string) => {
     const { isCommand, command } = parseCommand(value);
     
     if (isCommand) {
-      // Handle commands that affect the UI/navigation
       if (command === 'coder' || command === 'plan') {
         const success = agentRegistry.setCurrent(command);
         if (success) {
@@ -152,9 +103,8 @@ export default function App({ projectPath }: AppProps) {
       }
 
       if (command === 'sessions') {
-        const allSessions = listSessions(projectPath);
-        if (allSessions.length > 0) {
-          setSessions(allSessions);
+        loadSessions();
+        if (sessions.length > 0) {
           setSessionManagerMode('select');
           showSessionManager();
         }
@@ -162,9 +112,8 @@ export default function App({ projectPath }: AppProps) {
       }
 
       if (command === 'load') {
-        const allSessions = listSessions(projectPath);
-        if (allSessions.length > 0) {
-          setSessions(allSessions);
+        loadSessions();
+        if (sessions.length > 0) {
           setSessionManagerMode('load');
           showSessionManager();
         }
@@ -172,27 +121,21 @@ export default function App({ projectPath }: AppProps) {
       }
 
       if (command === 'new-session') {
-        if (currentSession) {
-          saveSession(projectPath, currentSession);
-        }
+        saveCurrentSession();
         handleNewSession();
         return;
       }
 
       if (command === 'delete-session') {
-        const allSessions = listSessions(projectPath);
-        if (allSessions.length > 0) {
-          setSessions(allSessions);
+        loadSessions();
+        if (sessions.length > 0) {
           setSessionManagerMode('delete');
           showSessionManager();
         }
         return;
       }
     }
-    // Regular messages are handled by ChatView's queue
-  }, [projectPath, currentSession, showModelSelector, showSessionManager, handleNewSession]);
-
-  const modelDisplayName = getAllModels().find(m => m.id === `${session.modelProvider}/${session.modelName}`)?.name;
+  }, [sessions.length, loadSessions, showModelSelector, showSessionManager, handleNewSession, saveCurrentSession, setCurrentAgent]);
 
   // Render based on view
   if (view === 'session-selector') {
@@ -222,8 +165,8 @@ export default function App({ projectPath }: AppProps) {
     );
   }
 
-  if(view === 'model-selector') {
-    return(
+  if (view === 'model-selector') {
+    return (
       <Box flexDirection="column">
         <ModelSelector
           currentModelId={`${session.modelProvider}/${session.modelName}`}
@@ -237,9 +180,6 @@ export default function App({ projectPath }: AppProps) {
   return (
     <Box flexDirection="column">
       <ChatView
-        session={session}
-        currentAgent={currentAgent}
-        modelDisplayName={modelDisplayName}
         onSubmit={handleSubmit}
         onExit={handleExit}
       />
@@ -247,3 +187,10 @@ export default function App({ projectPath }: AppProps) {
   );
 }
 
+export default function App({ projectPath }: { projectPath: string }) {
+  return (
+    <SessionProvider projectPath={projectPath} initialAgent="coder">
+      <AppContent />
+    </SessionProvider>
+  );
+}

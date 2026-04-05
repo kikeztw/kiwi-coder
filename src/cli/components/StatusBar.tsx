@@ -2,15 +2,10 @@ import { useMemo, useCallback } from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import { colors } from '../theme/colors.js';
-import type { Session } from '../hooks/useSession.js';
+import { useSessionContext } from '../context/SessionContext.js';
 
-interface StatusBarProps {
-  session: Session;
-  currentAgent?: string;
-  modelDisplayName?: string;
-}
-
-export function StatusBar({ session, currentAgent = 'coder', modelDisplayName }: StatusBarProps) {
+export function StatusBar() {
+  const { session, currentAgent, modelDisplayName } = useSessionContext();
   const { status, modelProvider, modelName } = session;
 
   const getStatusColor = useCallback(() => {
