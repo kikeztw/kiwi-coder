@@ -3,6 +3,7 @@ import { z } from 'zod';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
+import { resolveAndValidatePath, isBlockedFileName } from './pathValidation.js';
 
 // Read complete contents of a file as text
 export const readTextFile = tool({
@@ -12,13 +13,16 @@ export const readTextFile = tool({
     head: z.number().optional().describe('First N lines to read'),
     tail: z.number().optional().describe('Last N lines to read'),
   }),
-  execute: async ({ path: filePath, head, tail }) => {
+  execute: async ({ path: filePath, head, tail }, options) => {
     try {
       if (head && tail) {
         throw new Error('Cannot specify both head and tail simultaneously');
       }
 
-      const content = await fs.readFile(filePath, 'utf-8');
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(filePath, projectPath);
+
+      const content = await fs.readFile(resolvedPath, 'utf-8');
       
       if (head || tail) {
         const lines = content.split('\n');
@@ -41,9 +45,12 @@ export const readMediaFile = tool({
   inputSchema: z.object({
     path: z.string().describe('Path to the media file'),
   }),
-  execute: async ({ path: filePath }) => {
+  execute: async ({ path: filePath }, options) => {
     try {
-      const buffer = await fs.readFile(filePath);
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(filePath, projectPath);
+      
+      const buffer = await fs.readFile(resolvedPath);
       const base64 = buffer.toString('base64');
       
       // Determine MIME type from extension
@@ -78,10 +85,13 @@ export const readMultipleFiles = tool({
   inputSchema: z.object({
     paths: z.array(z.string()).describe('Array of file paths to read'),
   }),
-  execute: async ({ paths }) => {
+  execute: async ({ paths }, options) => {
+    const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+    
     const results = await Promise.allSettled(
       paths.map(async (filePath) => {
-        const content = await fs.readFile(filePath, 'utf-8');
+        const resolvedPath = resolveAndValidatePath(filePath, projectPath);
+        const content = await fs.readFile(resolvedPath, 'utf-8');
         return { path: filePath, content, success: true };
       })
     );
@@ -107,13 +117,16 @@ export const writeFile = tool({
     path: z.string().describe('File location'),
     content: z.string().describe('File content'),
   }),
-  execute: async ({ path: filePath, content }) => {
+  execute: async ({ path: filePath, content }, options) => {
     try {
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(filePath, projectPath);
+      
       // Ensure directory exists
-      const dir = path.dirname(filePath);
+      const dir = path.dirname(resolvedPath);
       await fs.mkdir(dir, { recursive: true });
       
-      await fs.writeFile(filePath, content, 'utf-8');
+      await fs.writeFile(resolvedPath, content, 'utf-8');
       return { success: true, path: filePath };
     } catch (error) {
       throw new Error(`Failed to write file: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -132,9 +145,12 @@ export const editFile = tool({
     })).describe('List of edit operations'),
     dryRun: z.boolean().optional().default(false).describe('Preview changes without applying'),
   }),
-  execute: async ({ path: filePath, edits, dryRun = false }) => {
+  execute: async ({ path: filePath, edits, dryRun = false }, options) => {
     try {
-      let content = await fs.readFile(filePath, 'utf-8');
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(filePath, projectPath);
+      
+      let content = await fs.readFile(resolvedPath, 'utf-8');
       const originalContent = content;
       const changes: Array<{ oldText: string; newText: string; found: boolean }> = [];
 
@@ -156,7 +172,7 @@ export const editFile = tool({
       }
 
       if (content !== originalContent) {
-        await fs.writeFile(filePath, content, 'utf-8');
+        await fs.writeFile(resolvedPath, content, 'utf-8');
       }
 
       return {
@@ -176,9 +192,12 @@ export const createDirectory = tool({
   inputSchema: z.object({
     path: z.string().describe('Directory path to create'),
   }),
-  execute: async ({ path: dirPath }) => {
+  execute: async ({ path: dirPath }, options) => {
     try {
-      await fs.mkdir(dirPath, { recursive: true });
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(dirPath, projectPath);
+      
+      await fs.mkdir(resolvedPath, { recursive: true });
       return { success: true, path: dirPath };
     } catch (error) {
       throw new Error(`Failed to create directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -192,11 +211,17 @@ export const listDirectory = tool({
   inputSchema: z.object({
     path: z.string().describe('Directory path to list'),
   }),
-  execute: async ({ path: dirPath }) => {
+  execute: async ({ path: dirPath }, options) => {
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(dirPath, projectPath);
       
-      return entries.map(entry => ({
+      const entries = await fs.readdir(resolvedPath, { withFileTypes: true });
+      
+      // Filter out blocked files/directories
+      const filteredEntries = entries.filter(entry => !isBlockedFileName(entry.name));
+      
+      return filteredEntries.map(entry => ({
         name: entry.name,
         type: entry.isDirectory() ? 'DIR' : 'FILE',
         path: path.join(dirPath, entry.name),
@@ -214,12 +239,18 @@ export const listDirectoryWithSizes = tool({
     path: z.string().describe('Directory path to list'),
     sortBy: z.enum(['name', 'size']).optional().default('name').describe('Sort entries by name or size'),
   }),
-  execute: async ({ path: dirPath, sortBy = 'name' }) => {
+  execute: async ({ path: dirPath, sortBy = 'name' }, options) => {
     try {
-      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(dirPath, projectPath);
+      
+      const entries = await fs.readdir(resolvedPath, { withFileTypes: true });
+      
+      // Filter out blocked files/directories
+      const filteredEntries = entries.filter(entry => !isBlockedFileName(entry.name));
       
       const entriesWithSize = await Promise.all(
-        entries.map(async (entry) => {
+        filteredEntries.map(async (entry) => {
           const fullPath = path.join(dirPath, entry.name);
           let size = 0;
           
@@ -270,13 +301,17 @@ export const moveFile = tool({
     source: z.string().describe('Source path'),
     destination: z.string().describe('Destination path'),
   }),
-  execute: async ({ source, destination }) => {
+  execute: async ({ source, destination }, options) => {
     try {
-      if (existsSync(destination)) {
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedSource = resolveAndValidatePath(source, projectPath);
+      const resolvedDestination = resolveAndValidatePath(destination, projectPath);
+      
+      if (existsSync(resolvedDestination)) {
         throw new Error('Destination already exists');
       }
       
-      await fs.rename(source, destination);
+      await fs.rename(resolvedSource, resolvedDestination);
       return { success: true, from: source, to: destination };
     } catch (error) {
       throw new Error(`Failed to move file: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -292,8 +327,11 @@ export const searchFiles = tool({
     pattern: z.string().describe('Search pattern (supports * wildcard)'),
     excludePatterns: z.array(z.string()).optional().describe('Patterns to exclude'),
   }),
-  execute: async ({ path: searchPath, pattern, excludePatterns = [] }) => {
+  execute: async ({ path: searchPath, pattern, excludePatterns = [] }, options) => {
     try {
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedSearchPath = resolveAndValidatePath(searchPath, projectPath);
+      
       const matches: string[] = [];
       
       async function searchRecursive(currentPath: string) {
@@ -302,10 +340,10 @@ export const searchFiles = tool({
         for (const entry of entries) {
           const fullPath = path.join(currentPath, entry.name);
           
-          // Check if excluded
+          // Check if excluded by user pattern or blocked
           const isExcluded = excludePatterns.some(excludePattern => 
             entry.name.includes(excludePattern)
-          );
+          ) || isBlockedFileName(entry.name);
           
           if (isExcluded) continue;
           
@@ -322,7 +360,7 @@ export const searchFiles = tool({
         }
       }
       
-      await searchRecursive(searchPath);
+      await searchRecursive(resolvedSearchPath);
 
       return {
         matches,
@@ -341,7 +379,10 @@ export const directoryTree = tool({
     path: z.string().describe('Starting directory'),
     excludePatterns: z.array(z.string()).optional().describe('Patterns to exclude (glob format)'),
   }),
-  execute: async ({ path: dirPath, excludePatterns = [] }) => {
+  execute: async ({ path: dirPath, excludePatterns = [] }, options) => {
+    const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+    const resolvedDirPath = resolveAndValidatePath(dirPath, projectPath);
+    
     async function buildTree(currentPath: string): Promise<any> {
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
       
@@ -349,11 +390,11 @@ export const directoryTree = tool({
         entries.map(async (entry) => {
           const fullPath = path.join(currentPath, entry.name);
           
-          // Check if excluded
+          // Check if excluded by user pattern or blocked
           const shouldExclude = excludePatterns.some(pattern => {
             // Simple pattern matching
             return entry.name.includes(pattern) || fullPath.includes(pattern);
-          });
+          }) || isBlockedFileName(entry.name);
           
           if (shouldExclude) return null;
           
@@ -377,7 +418,7 @@ export const directoryTree = tool({
     }
 
     try {
-      const tree = await buildTree(dirPath);
+      const tree = await buildTree(resolvedDirPath);
       return tree;
     } catch (error) {
       throw new Error(`Failed to build directory tree: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -391,9 +432,12 @@ export const getFileInfo = tool({
   inputSchema: z.object({
     path: z.string().describe('Path to file or directory'),
   }),
-  execute: async ({ path: filePath }) => {
+  execute: async ({ path: filePath }, options) => {
     try {
-      const stats = await fs.stat(filePath);
+      const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
+      const resolvedPath = resolveAndValidatePath(filePath, projectPath);
+      
+      const stats = await fs.stat(resolvedPath);
       
       return {
         size: stats.size,
@@ -413,11 +457,10 @@ export const getFileInfo = tool({
 export const listAllowedDirectories = tool({
   description: 'List all directories the agent is allowed to access',
   inputSchema: z.object({}),
-  execute: async () => {
-    // This would typically come from configuration
-    // For now, return the current working directory
+  execute: async (_input, options) => {
+    const { projectPath } = (options as { experimental_context: { projectPath: string } }).experimental_context;
     return {
-      allowedDirectories: [process.cwd()],
+      allowedDirectories: [projectPath],
     };
   },
 });

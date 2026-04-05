@@ -5,7 +5,7 @@ export interface Agent {
   description: string;
   systemPrompt: string;
   tools?: Record<string, Tool>;
-  process(message: string, context: AgentContext): Promise<ModelMessage[]>;
+  process(params: {message: string, context: AgentContext}): Promise<ModelMessage[]>;
 }
 
 export interface AgentContext {
@@ -13,6 +13,7 @@ export interface AgentContext {
   sessionId: string;
   modelProvider: string;
   modelName: string;
+  projectPath: string;
 }
 
 export interface CommandHandler {

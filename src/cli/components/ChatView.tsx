@@ -19,7 +19,7 @@ function ChatViewInternal({
   onSubmit,
   onExit,
 }: ChatViewProps) {
-  const { session, currentAgent, modelDisplayName, addMessage: addMessageToSession } = useSessionContext();
+  const { session, addMessage: addMessageToSession, projectPath } = useSessionContext();
   
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ModelMessage[]>([]);
@@ -43,12 +43,16 @@ function ChatViewInternal({
     const agent = agentRegistry.getCurrent();
 
     try {
-       const response = await agent.process(userInput, {
-        messages,
-        sessionId: session.id,
-        modelProvider: session.modelProvider,
-        modelName: session.modelName,
-      });
+       const response = await agent.process({
+        message: userInput,
+        context: {
+          messages,
+          sessionId: session.id,
+          modelProvider: session.modelProvider,
+          modelName: session.modelName,
+          projectPath,
+        }
+      }); 
 
       response.forEach(element => {
         addMessage(element);

@@ -1,4 +1,4 @@
-import { generateText, ModelMessage, convertToModelMessages, stepCountIs } from 'ai';
+import { generateText, ModelMessage, convertToModelMessages, stepCountIs} from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
 import { separateMessages } from './utils.js';
@@ -18,20 +18,20 @@ When helping users:
 
 Always operate within the workspace directory for security.`;
 
-  async process(message: string, context: AgentContext): Promise<ModelMessage[]> {
+  async process({message, context}: {message: string, context: AgentContext}): Promise<ModelMessage[]> {
     try {
       const model = getModel(context.modelProvider, context.modelName);
-      const { systemPrompt, chatMessages } = separateMessages(context, this.systemPrompt);
 
       const result = await generateText({
         model,
-        system: systemPrompt,
+        system: this.systemPrompt,
         tools: { ...filesystemTools },
         stopWhen: stepCountIs(10),
-        messages: [...chatMessages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
+        messages: [...context.messages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
+        experimental_context: { projectPath: context.projectPath },
       });
 
-      return result.response.messages as ModelMessage[];
+      return result.response.messages;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return [{ role: 'assistant', content: `\n[Error: ${errorMessage}]` }] as ModelMessage[];

@@ -16,20 +16,20 @@ When helping users:
 
 Focus on high-level design and strategy.`;
 
-  async process(message: string, context: AgentContext): Promise<ModelMessage[]> {
+  async process({message, context}: {message: string, context: AgentContext}): Promise<ModelMessage[]> {
     try {
       const model = getModel(context.modelProvider, context.modelName);
-      const { systemPrompt, chatMessages } = separateMessages(context, this.systemPrompt);
 
       // const result = await generateText({
       //   model,
-      //   system: systemPrompt,
+      //   system: this.systemPrompt,
       //   tools: { ...filesystemTools },
       //   stopWhen: stepCountIs(10),
-      //   messages: [...chatMessages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
+      //   messages: [...context.messages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
+      //   experimental_context: { projectPath: context.projectPath },
       // });
 
-      // return result.response.messages as ModelMessage[];
+      // return result.response.messages;
       return [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
