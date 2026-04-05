@@ -25,25 +25,17 @@ function ChatViewInternal({
   const [messages, setMessages] = useState<ModelMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const addMessage = useCallback((message: ModelMessage) => {
-    setMessages(prev => [...prev, message]);
-    // Also add to session for persistence
+  const addMessage = useCallback((message: ModelMessage[]) => {
+    setMessages(message);
     addMessageToSession(message);
   }, [addMessageToSession]);
 
   const processMessage = useCallback(async (userInput: string) => {
     setIsProcessing(true);
-
-    // Add user message
-    addMessage({
-      role: 'user',
-      content: userInput,
-    });
-
     const agent = agentRegistry.getCurrent();
 
     try {
-       const response = await agent.process({
+       await agent.process({
         message: userInput,
         context: {
           messages,
@@ -51,18 +43,15 @@ function ChatViewInternal({
           modelProvider: session.modelProvider,
           modelName: session.modelName,
           projectPath,
+        },
+        onStep: (stepMessages) => {
+          setMessages(stepMessages);
         }
       }); 
 
-      response.forEach(element => {
-        addMessage(element);
-      });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      addMessage({
-        role: 'system',
-        content: `Error: ${errorMsg}`,
-      });
+      console.log(errorMsg);
     } finally {
       setIsProcessing(false);
     }

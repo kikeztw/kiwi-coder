@@ -1,7 +1,6 @@
 import { generateText, ModelMessage, convertToModelMessages, stepCountIs} from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
-import { separateMessages } from './utils.js';
 import { filesystemTools } from '@/tools/filesystem.js';
 
 export class CoderAgent implements Agent {
@@ -18,20 +17,28 @@ When helping users:
 
 Always operate within the workspace directory for security.`;
 
-  async process({message, context}: {message: string, context: AgentContext}): Promise<ModelMessage[]> {
+  async process({message, context, onStep}: {message: string, context: AgentContext, onStep?: (messages: ModelMessage[]) => void}): Promise<ModelMessage[]> {
     try {
       const model = getModel(context.modelProvider, context.modelName);
+      const allMessages: ModelMessage[] = [];
 
-      const result = await generateText({
+      await generateText({
         model,
         system: this.systemPrompt,
         tools: { ...filesystemTools },
-        stopWhen: stepCountIs(10),
+        stopWhen: stepCountIs(20),
         messages: [...context.messages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
         experimental_context: { projectPath: context.projectPath },
+        onStepFinish: (step) => {
+          const stepMessages = step.response.messages as ModelMessage[];
+          // console.log('stepMessages', JSON.stringify(stepMessages, null, 2));
+          if (onStep) {
+            onStep(stepMessages);
+          }
+        }
       });
 
-      return result.response.messages;
+      return allMessages;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return [{ role: 'assistant', content: `\n[Error: ${errorMessage}]` }] as ModelMessage[];

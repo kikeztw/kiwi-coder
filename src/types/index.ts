@@ -5,7 +5,7 @@ export interface Agent {
   description: string;
   systemPrompt: string;
   tools?: Record<string, Tool>;
-  process(params: {message: string, context: AgentContext}): Promise<ModelMessage[]>;
+  process(params: {message: string, context: AgentContext, onStep?: (messages: ModelMessage[]) => void}): Promise<ModelMessage[]>;
 }
 
 export interface AgentContext {

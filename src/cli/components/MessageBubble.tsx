@@ -72,12 +72,7 @@ export const MessageBubble = memo<MessageProps>(({ message }) => {
 
       if(item.type === 'tool-call'){
         return (
-          <Box 
-            marginBottom={0}
-            paddingX={paddingX}
-            paddingY={paddingY}
-            alignItems="flex-start"
-          >
+          <Box  key={`${index}-${item.type}`} marginBottom={0} alignItems="flex-start">
             <Text color={bubbleTheme.tool.text} bold>
               {bubbleTheme.tool.icon} 
             </Text>
@@ -91,6 +86,7 @@ export const MessageBubble = memo<MessageProps>(({ message }) => {
       if(item.type === 'reasoning'){
         return (
           <Box 
+            key={`${index}-${item.type}`}
             marginBottom={0}
             paddingX={paddingX}
             paddingY={paddingY}
@@ -118,9 +114,6 @@ export const MessageBubble = memo<MessageProps>(({ message }) => {
       return(
         <Box 
           key={item.approvalId}
-          marginBottom={0}
-          paddingX={paddingX}
-          paddingY={paddingY}
           alignItems="flex-start"
         >
           <Text color={bubbleTheme.tool.text} bold>

@@ -11,6 +11,7 @@ import {
   updateSessionModel,
   type SessionInfo 
 } from '../../workspace/sessionManager.js';
+import { ModelMessage } from 'ai';
 
 // Default model configuration
 const DEFAULT_MODEL = {
@@ -52,7 +53,7 @@ interface SessionContextType {
   updateModelAndSave: (provider: string, model: string, modelId: string, name: string) => void;
   
   // Messages
-  addMessage: (message: { role: string; content: string | unknown }) => void;
+  addMessage: (message: ModelMessage[]) => void;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -183,13 +184,13 @@ export function SessionProvider({ children, projectPath, initialAgent = 'coder' 
     }
   }, [projectPath, currentSession]);
   
-  const addMessage = useCallback((message: { role: string; content: string | unknown }) => {
+  const addMessage = useCallback((messages: ModelMessage[]) => {
     setCurrentSession(prev => {
       if (!prev) return prev;
       const updated = {
         ...prev,
-        messages: [...prev.messages, message as unknown as import('ai').ModelMessage],
-        messageCount: prev.messageCount + 1,
+        messages,
+        messageCount: messages.length + 1,
         lastActive: new Date().toISOString(),
       };
       // Auto-save on new message

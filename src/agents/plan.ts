@@ -16,7 +16,7 @@ When helping users:
 
 Focus on high-level design and strategy.`;
 
-  async process({message, context}: {message: string, context: AgentContext}): Promise<ModelMessage[]> {
+  async process({message, context, onStep}: {message: string, context: AgentContext, onStep?: (messages: ModelMessage[]) => void}): Promise<ModelMessage[]> {
     try {
       const model = getModel(context.modelProvider, context.modelName);
 
