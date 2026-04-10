@@ -1,15 +1,18 @@
-import type { ModelMessage, Tool } from 'ai';
-
+import {  ModelMessage, Tool, UIMessage} from 'ai';
 export interface Agent {
   name: string;
   description: string;
   systemPrompt: string;
   tools?: Record<string, Tool>;
-  process(params: {message: string, context: AgentContext, onStep?: (messages: ModelMessage[]) => void}): Promise<ModelMessage[]>;
+  process(params: {
+    messages: UIMessage[];
+    session: AgentContext;
+    onStep?: (chunk: UIMessage) => void,
+    onMessagesUpdate?: (messages: UIMessage[]) => void
+  }): Promise<void>;
 }
 
 export interface AgentContext {
-  messages: ModelMessage[];
   sessionId: string;
   modelProvider: string;
   modelName: string;

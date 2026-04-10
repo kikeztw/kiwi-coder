@@ -1,4 +1,4 @@
-import { generateText, ModelMessage, convertToModelMessages, stepCountIs} from 'ai';
+import { convertToModelMessages, stepCountIs, UIMessage, streamText, createUIMessageStream, InferUIMessageChunk, UIDataTypes, UITools, readUIMessageStream} from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
 import { filesystemTools } from '@/tools/filesystem.js';
@@ -8,7 +8,6 @@ export class CoderAgent implements Agent {
   public readonly name = 'coder';
   public readonly description = 'Agent specialized in coding tasks';
   public readonly systemPrompt = `You are an expert coding assistant. Your task is to help users write, read, and modify code files.
-
 When helping users:
 1. First understand the existing code by reading relevant files
 2. Think step by step about the changes needed
@@ -17,31 +16,40 @@ When helping users:
 
 Always operate within the workspace directory for security.`;
 
-  async process({message, context, onStep}: {message: string, context: AgentContext, onStep?: (messages: ModelMessage[]) => void}): Promise<ModelMessage[]> {
+  async process(params: {
+    messages: UIMessage[],
+    session: AgentContext;
+    onStep?: (chunk:  UIMessage) => void,
+    onMessagesUpdate?: (messages: UIMessage[]) => void
+  }): Promise<void> {
     try {
-      const model = getModel(context.modelProvider, context.modelName);
-      const allMessages: ModelMessage[] = [];
+      const {messages, session, onStep, onMessagesUpdate} = params;
+      const {projectPath} = session;
+      const model = getModel(session.modelProvider, session.modelName);
 
-      await generateText({
+      
+
+      const result = streamText({
         model,
         system: this.systemPrompt,
         tools: { ...filesystemTools },
-        stopWhen: stepCountIs(20),
-        messages: [...context.messages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
-        experimental_context: { projectPath: context.projectPath },
-        onStepFinish: (step) => {
-          const stepMessages = step.response.messages as ModelMessage[];
-          // console.log('stepMessages', JSON.stringify(stepMessages, null, 2));
-          if (onStep) {
-            onStep(stepMessages);
-          }
-        }
+        stopWhen: stepCountIs(50),
+        messages: await convertToModelMessages(messages),
+        experimental_context: { projectPath },
       });
 
-      return allMessages;
+      let lastUIMessage: UIMessage | null = null;
+      for await (const uiMessage of readUIMessageStream({
+        stream: result.toUIMessageStream(),
+      })) {
+        // console.log(uiMessage);
+        onStep?.(uiMessage);
+      }
+
+      console.log('lastUIMessage', lastUIMessage);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return [{ role: 'assistant', content: `\n[Error: ${errorMessage}]` }] as ModelMessage[];
+      console.error('Coder agent error:', errorMessage);
     }
   }
 }

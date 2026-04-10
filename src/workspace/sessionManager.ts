@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
-import { ModelMessage } from 'ai';
+import { UIMessage } from 'ai';
 
 export const KIWI_DIR = '.kiwi';
 export const SESSIONS_DIR = '.kiwi/sessions';
@@ -18,7 +18,7 @@ export interface PersistedSession {
     name: string;
   };
   agent: string;
-  messages: ModelMessage[];
+  messages: UIMessage[];
   messageCount: number;
   metadata?: {
     tags?: string[];

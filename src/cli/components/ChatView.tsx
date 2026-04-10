@@ -1,7 +1,9 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useEffect } from 'react';
 import { Box } from 'ink';
-import { ModelMessage } from 'ai';
 import { useInput } from 'ink';
+import { UIMessage } from 'ai';
+import { randomUUID } from 'crypto';
+// import { useChat } from '@ai-sdk/react';
 
 import { agentRegistry } from '../../agents/index.js';
 import { useSessionContext } from '../context/SessionContext.js';
@@ -9,6 +11,7 @@ import { MessageBubble } from './MessageBubble.js';
 import { StatusBar } from './StatusBar.js';
 import { WelcomeScreen } from './WelcomeScreen.js';
 import { InputBox } from './InputBox.js';
+import { set } from 'zod/v4';
 
 interface ChatViewProps {
   onSubmit: (value: string) => void;
@@ -19,33 +22,58 @@ function ChatViewInternal({
   onSubmit,
   onExit,
 }: ChatViewProps) {
-  const { session, addMessage: addMessageToSession, projectPath } = useSessionContext();
-  
+  const { session, currentSession, projectPath } = useSessionContext();
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ModelMessage[]>([]);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const addMessage = useCallback((message: ModelMessage[]) => {
-    setMessages(message);
-    addMessageToSession(message);
-  }, [addMessageToSession]);
+  // const { setMessages: setChatMessages } = useChat();
+  // Load initial messages from session
+  useEffect(() => {
+    if (currentSession?.messages) {
+      setMessages(currentSession.messages);
+    }
+  }, [currentSession]);
 
   const processMessage = useCallback(async (userInput: string) => {
     setIsProcessing(true);
     const agent = agentRegistry.getCurrent();
 
+        // Add user message to existing messages
+    const userMessage: UIMessage = {
+      id: randomUUID(),
+      role: 'user',
+      parts: [{ type: 'text', text: userInput }]
+    };
+
+    const allMessages = [...messages, userMessage];
+    setMessages(allMessages);
+    
+    // Small delay to ensure state is flushed
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
     try {
        await agent.process({
-        message: userInput,
-        context: {
-          messages,
+        messages: allMessages,
+        session: {
           sessionId: session.id,
           modelProvider: session.modelProvider,
           modelName: session.modelName,
           projectPath,
         },
-        onStep: (stepMessages) => {
-          setMessages(stepMessages);
+        onStep: (updatedMessages) => {
+          setMessages((state) => {
+            const newMessages = [...state];
+            if(newMessages[newMessages.length -1].role === 'assistant'){
+              newMessages[newMessages.length -1] = updatedMessages;
+            }
+            if(newMessages[newMessages.length -1].role === 'user'){
+              newMessages.push(updatedMessages);
+            }
+            return newMessages;  
+          });
+        },
+        onMessagesUpdate: (finalMessages) => {
+          setMessages(finalMessages);
         }
       }); 
 
@@ -55,7 +83,7 @@ function ChatViewInternal({
     } finally {
       setIsProcessing(false);
     }
-  }, [messages, session, addMessage]);
+  }, [messages, session, projectPath]);
 
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {

@@ -1,7 +1,6 @@
-import { generateText, ModelMessage } from 'ai';
+import { convertToModelMessages, stepCountIs, UIMessage, streamText, readUIMessageStream} from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
-import { separateMessages } from './utils.js';
 
 export class PlanAgent implements Agent {
   public readonly name = 'plan';
@@ -16,24 +15,37 @@ When helping users:
 
 Focus on high-level design and strategy.`;
 
-  async process({message, context, onStep}: {message: string, context: AgentContext, onStep?: (messages: ModelMessage[]) => void}): Promise<ModelMessage[]> {
+   async process(params: {
+    messages: UIMessage[],
+    session: AgentContext;
+    onStep?: (chunk:  UIMessage) => void,
+    onMessagesUpdate?: (messages: UIMessage[]) => void
+  }): Promise<void> {
     try {
-      const model = getModel(context.modelProvider, context.modelName);
+      const {messages, session, onStep, onMessagesUpdate} = params;
+      const {projectPath} = session;
+      const model = getModel(session.modelProvider, session.modelName);
+      
 
-      // const result = await generateText({
-      //   model,
-      //   system: this.systemPrompt,
-      //   tools: { ...filesystemTools },
-      //   stopWhen: stepCountIs(10),
-      //   messages: [...context.messages, ...(await convertToModelMessages([{ parts: [{ type: 'text', text: message }], role: 'user' }]))],
-      //   experimental_context: { projectPath: context.projectPath },
-      // });
+      const result = streamText({
+        model,
+        system: this.systemPrompt,
+        stopWhen: stepCountIs(50),
+        messages: await convertToModelMessages(messages),
+        experimental_context: { projectPath },
+      });
 
-      // return result.response.messages;
-      return [];
+      let lastUIMessage: UIMessage | null = null;
+      for await (const uiMessage of readUIMessageStream({
+        stream: result.toUIMessageStream(),
+      })) {
+        console.log(uiMessage);
+        onStep?.(uiMessage);
+      }
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return [{ role: 'assistant', content: `\n[Error: ${errorMessage}]` }] as ModelMessage[];
+      console.error('Coder agent error:', errorMessage);
     }
   }
 }

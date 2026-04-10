@@ -1,0 +1,15 @@
+{
+  "id": "session-20260405-172814",
+  "created": "2026-04-05T21:28:14.389Z",
+  "lastActive": "2026-04-05T21:29:18.609Z",
+  "projectPath": "/Users/carloshurtado/Documents/projects/react-agent-code",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "modelId": "openai/gpt-4o",
+    "name": "gpt-4o"
+  },
+  "agent": "coder",
+  "messages": [],
+  "messageCount": 0
+}
