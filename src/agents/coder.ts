@@ -1,4 +1,4 @@
-import { convertToModelMessages, stepCountIs, UIMessage, streamText, createUIMessageStream, InferUIMessageChunk, UIDataTypes, UITools, readUIMessageStream} from 'ai';
+import { convertToModelMessages, stepCountIs, UIMessage, streamText, readUIMessageStream} from 'ai';
 import type { Agent, AgentContext } from '../types/index.js';
 import { getModel } from '../providers/index.js';
 import { filesystemTools } from '@/tools/filesystem.js';
@@ -20,14 +20,13 @@ Always operate within the workspace directory for security.`;
     messages: UIMessage[],
     session: AgentContext;
     onStep?: (chunk:  UIMessage) => void,
-    onMessagesUpdate?: (messages: UIMessage[]) => void
+    onToolCallStart?: (toolCall: any) => void,
+    onToolCallFinish?: (toolCall: any) => void,
   }): Promise<void> {
     try {
-      const {messages, session, onStep, onMessagesUpdate} = params;
+      const {messages, session, onStep, onToolCallStart, onToolCallFinish} = params;
       const {projectPath} = session;
       const model = getModel(session.modelProvider, session.modelName);
-
-      
 
       const result = streamText({
         model,
@@ -36,9 +35,16 @@ Always operate within the workspace directory for security.`;
         stopWhen: stepCountIs(50),
         messages: await convertToModelMessages(messages),
         experimental_context: { projectPath },
+        experimental_onToolCallStart: (toolCall) => {
+          // console.log('Tool call start:', toolCall);
+          onToolCallStart?.(toolCall);
+        },
+        experimental_onToolCallFinish: (toolCall) => {
+          // console.log('Tool call finish:', toolCall);
+          onToolCallFinish?.(toolCall);
+        }
       });
 
-      let lastUIMessage: UIMessage | null = null;
       for await (const uiMessage of readUIMessageStream({
         stream: result.toUIMessageStream(),
       })) {
@@ -46,7 +52,6 @@ Always operate within the workspace directory for security.`;
         onStep?.(uiMessage);
       }
 
-      console.log('lastUIMessage', lastUIMessage);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Coder agent error:', errorMessage);

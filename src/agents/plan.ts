@@ -22,7 +22,7 @@ Focus on high-level design and strategy.`;
     onMessagesUpdate?: (messages: UIMessage[]) => void
   }): Promise<void> {
     try {
-      const {messages, session, onStep, onMessagesUpdate} = params;
+      const {messages, session, onStep} = params;
       const {projectPath} = session;
       const model = getModel(session.modelProvider, session.modelName);
       

@@ -8,7 +8,8 @@ export interface Agent {
     messages: UIMessage[];
     session: AgentContext;
     onStep?: (chunk: UIMessage) => void,
-    onMessagesUpdate?: (messages: UIMessage[]) => void
+    onToolCallStart?: (toolCall: any) => void,
+    onToolCallFinish?: (toolCall: any) => void,
   }): Promise<void>;
 }
 

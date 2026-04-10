@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useEffect } from 'react';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import { UIMessage } from 'ai';
 import { randomUUID } from 'crypto';
@@ -25,8 +25,11 @@ function ChatViewInternal({
   const { session, currentSession, projectPath } = useSessionContext();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<UIMessage[]>([]);
+  const [currentUIMessage, setCurrentUIMessage] = useState<UIMessage | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  // const { setMessages: setChatMessages } = useChat();
+  const [isCallingTool, setIsCallingTool] = useState('');
+
+
   // Load initial messages from session
   useEffect(() => {
     if (currentSession?.messages) {
@@ -45,7 +48,12 @@ function ChatViewInternal({
       parts: [{ type: 'text', text: userInput }]
     };
 
-    const allMessages = [...messages, userMessage];
+    const allMessages = [...messages];
+    if(currentUIMessage){
+      allMessages.push(currentUIMessage);
+      setCurrentUIMessage(null);
+    }
+    allMessages.push(userMessage);
     setMessages(allMessages);
     
     // Small delay to ensure state is flushed
@@ -61,20 +69,24 @@ function ChatViewInternal({
           projectPath,
         },
         onStep: (updatedMessages) => {
-          setMessages((state) => {
-            const newMessages = [...state];
-            if(newMessages[newMessages.length -1].role === 'assistant'){
-              newMessages[newMessages.length -1] = updatedMessages;
-            }
-            if(newMessages[newMessages.length -1].role === 'user'){
-              newMessages.push(updatedMessages);
-            }
-            return newMessages;  
-          });
+          // setMessages((state) => {
+          //   const newMessages = [...state];
+          //   if(newMessages[newMessages.length -1].role === 'assistant'){
+          //     newMessages[newMessages.length -1] = updatedMessages;
+          //   }
+          //   if(newMessages[newMessages.length -1].role === 'user'){
+          //     newMessages.push(updatedMessages);
+          //   }
+          //   return newMessages;  
+          // });
+          setCurrentUIMessage(updatedMessages);
         },
-        onMessagesUpdate: (finalMessages) => {
-          setMessages(finalMessages);
-        }
+        onToolCallStart: (toolCall) => {
+          setIsCallingTool(toolCall.toolCall.toolName as string);
+        },
+        onToolCallFinish: (toolCall) => {
+          setIsCallingTool('');
+        },
       }); 
 
     } catch (error) {
@@ -83,7 +95,7 @@ function ChatViewInternal({
     } finally {
       setIsProcessing(false);
     }
-  }, [messages, session, projectPath]);
+  }, [messages, session, projectPath, currentUIMessage]);
 
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
@@ -118,16 +130,24 @@ function ChatViewInternal({
 
   return (
     <Box flexDirection="column">
-      {messages.length === 0 && <WelcomeScreen />}
-      
+      <WelcomeScreen />
       <Box flexDirection="column" paddingX={1}>
         {messages.map((message, index) => (
           <MessageBubble key={index} message={message} />
         ))}
+        {currentUIMessage && <MessageBubble message={currentUIMessage} />}
       </Box>
-      
+      {isCallingTool && (
+         <Box 
+          marginBottom={0}
+          paddingX={1}
+          paddingY={1}
+          alignItems="flex-start"
+        >
+            <Text color="blue">• {isCallingTool}</Text>
+        </Box>
+      )}
       <StatusBar />
-      
       <InputBox input={input} isProcessing={isProcessing} />
     </Box>
   );
