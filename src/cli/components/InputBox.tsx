@@ -4,10 +4,9 @@ import { colors } from '../theme/colors.js';
 
 interface InputBoxProps {
   input: string;
-  isProcessing: boolean;
 }
 
-export const InputBox = memo(function InputBox({ input, isProcessing }: InputBoxProps) {
+export const InputBox = memo(function InputBox({ input }: InputBoxProps) {
   return (
     <Box
       paddingX={1}
@@ -16,7 +15,7 @@ export const InputBox = memo(function InputBox({ input, isProcessing }: InputBox
       borderColor={colors.borderUser}
     >
       <Text color={colors.accentUser} bold>{`❯ `}</Text>
-      <Text>{isProcessing ? 'Agent is thinking...' : input}</Text>
+      <Text>{input}</Text>
     </Box>
   );
 });

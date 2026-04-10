@@ -20,11 +20,12 @@ Always operate within the workspace directory for security.`;
     messages: UIMessage[],
     session: AgentContext;
     onStep?: (chunk:  UIMessage) => void,
+    onStart?: () => void,
     onToolCallStart?: (toolCall: any) => void,
     onToolCallFinish?: (toolCall: any) => void,
   }): Promise<void> {
     try {
-      const {messages, session, onStep, onToolCallStart, onToolCallFinish} = params;
+      const {messages, session, onStep, onStart, onToolCallStart, onToolCallFinish} = params;
       const {projectPath} = session;
       const model = getModel(session.modelProvider, session.modelName);
 
@@ -35,6 +36,9 @@ Always operate within the workspace directory for security.`;
         stopWhen: stepCountIs(50),
         messages: await convertToModelMessages(messages),
         experimental_context: { projectPath },
+        experimental_onStart: () => {
+          onStart?.();
+        },
         experimental_onToolCallStart: (toolCall) => {
           // console.log('Tool call start:', toolCall);
           onToolCallStart?.(toolCall);

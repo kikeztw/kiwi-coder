@@ -7,6 +7,7 @@ export interface Agent {
   process(params: {
     messages: UIMessage[];
     session: AgentContext;
+    onStart?: () => void,
     onStep?: (chunk: UIMessage) => void,
     onToolCallStart?: (toolCall: any) => void,
     onToolCallFinish?: (toolCall: any) => void,

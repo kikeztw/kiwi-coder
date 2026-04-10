@@ -11,7 +11,6 @@ import { MessageBubble } from './MessageBubble.js';
 import { StatusBar } from './StatusBar.js';
 import { WelcomeScreen } from './WelcomeScreen.js';
 import { InputBox } from './InputBox.js';
-import { set } from 'zod/v4';
 
 interface ChatViewProps {
   onSubmit: (value: string) => void;
@@ -38,7 +37,6 @@ function ChatViewInternal({
   }, [currentSession]);
 
   const processMessage = useCallback(async (userInput: string) => {
-    setIsProcessing(true);
     const agent = agentRegistry.getCurrent();
 
         // Add user message to existing messages
@@ -68,23 +66,16 @@ function ChatViewInternal({
           modelName: session.modelName,
           projectPath,
         },
+        onStart: () => {
+          setIsProcessing(true);
+        },
         onStep: (updatedMessages) => {
-          // setMessages((state) => {
-          //   const newMessages = [...state];
-          //   if(newMessages[newMessages.length -1].role === 'assistant'){
-          //     newMessages[newMessages.length -1] = updatedMessages;
-          //   }
-          //   if(newMessages[newMessages.length -1].role === 'user'){
-          //     newMessages.push(updatedMessages);
-          //   }
-          //   return newMessages;  
-          // });
           setCurrentUIMessage(updatedMessages);
         },
         onToolCallStart: (toolCall) => {
           setIsCallingTool(toolCall.toolCall.toolName as string);
         },
-        onToolCallFinish: (toolCall) => {
+        onToolCallFinish: () => {
           setIsCallingTool('');
         },
       }); 
@@ -147,8 +138,18 @@ function ChatViewInternal({
             <Text color="blue">• {isCallingTool}</Text>
         </Box>
       )}
+      {isProcessing && (
+         <Box 
+          marginBottom={0}
+          paddingX={1}
+          paddingY={1}
+          alignItems="flex-start"
+        >
+            <Text color="blue">• Agent is thinking...</Text>
+        </Box>
+      )}
       <StatusBar />
-      <InputBox input={input} isProcessing={isProcessing} />
+      <InputBox input={input} />
     </Box>
   );
 }
