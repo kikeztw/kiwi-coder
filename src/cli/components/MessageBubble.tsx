@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Box, Text } from 'ink';
 import { bubbleTheme } from '../theme/colors.js';
 import type { UIMessage } from 'ai';
+import { ApprovalDialog } from './ApprovalDialog.js';
 
 interface MessageProps {
   message: UIMessage;
@@ -9,6 +10,9 @@ interface MessageProps {
 
 const paddingX = 1;
 const paddingY = 2;
+
+const isApprovalRequested = (part: UIMessage['parts'][0]): boolean =>
+  part.type.startsWith('tool-') && 'state' in part && part.state === 'approval-requested';
 
 export const MessageBubble = memo<MessageProps>(({ message }) => {
   const { role, parts } = message;
@@ -42,6 +46,10 @@ export const MessageBubble = memo<MessageProps>(({ message }) => {
   }
 
   if(role === 'assistant'){
+    const pendingApprovalIds = parts
+      .filter(isApprovalRequested)
+      .map(p => ('toolCallId' in p ? p.toolCallId : ''));
+
     return (
       <Box flexDirection="column">
         {parts.map((part, index) => {
@@ -63,67 +71,22 @@ export const MessageBubble = memo<MessageProps>(({ message }) => {
               </Box>
             );
           }
-          
-          // if(part.type === 'tool-invocation') {
-          //   return (
-          //     <Box key={index} marginBottom={0} paddingX={paddingX} alignItems="flex-start">
-          //       <Text color={bubbleTheme.tool.text} bold>
-          //         {bubbleTheme.tool.icon} 
-          //       </Text>
-          //       <Text color={bubbleTheme.tool.text}>
-          //         {part.title || part.toolCallId}
-          //       </Text>
-          //     </Box>
-          //   );
-          // }
 
-          // if(part.type === 'tool-result') {
-          //   return (
-          //     <Box key={index} marginBottom={0} paddingX={paddingX} alignItems="flex-start">
-          //       <Text color={bubbleTheme.tool.text} dimColor>
-          //         → Result
-          //       </Text>
-          //     </Box>
-          //   );
-          // }
-
-          // if(part.type === 'reasoning') {
-          //   return (
-          //     <Box 
-          //       key={index}
-          //       marginBottom={0}
-          //       paddingX={paddingX}
-          //       paddingY={paddingY}
-          //       alignItems="flex-start"
-          //     >
-          //       <Text color={bubbleTheme.agent.text} dimColor italic>
-          //         💭 {part.text}
-          //       </Text>
-          //     </Box>
-          //   );
-          // }
-          
-          return null;
-        })}
-      </Box>
-    );
-  }
-  
-  if(role === 'system'){
-    return (
-      <Box flexDirection="column">
-        {parts.map((part, index) => {
-          if(part.type === 'text') {
+          if(isApprovalRequested(part) && 'toolCallId' in part) {
+            const command = (part.input as { command?: string })?.command ?? '';
+            const description = (part.input as { description?: string })?.description;
+            const approvalId = ('approval' in part && part.approval && 'id' in part.approval)
+              ? (part.approval as { id: string }).id
+              : part.toolCallId;
+            const isActive = pendingApprovalIds[0] === part.toolCallId;
             return (
-              <Box 
-                key={index}
-                marginBottom={0}
-                paddingX={paddingX}
-              >
-                <Text color={bubbleTheme.system.text} dimColor>
-                  {bubbleTheme.system.icon} {part.text}
-                </Text>
-              </Box>
+              <ApprovalDialog
+                key={part.toolCallId}
+                command={command}
+                description={description}
+                isActive={isActive}
+                onApprove={(approved) => {}}
+              />
             );
           }
           return null;
@@ -131,7 +94,7 @@ export const MessageBubble = memo<MessageProps>(({ message }) => {
       </Box>
     );
   }
-
+ 
   return null;
 });
 

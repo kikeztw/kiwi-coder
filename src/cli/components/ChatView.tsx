@@ -1,16 +1,13 @@
-import { memo, useState, useCallback, useEffect } from 'react';
-import { Box, Text } from 'ink';
+import { memo, useState, useCallback } from 'react';
+import { Box } from 'ink';
 import { useInput } from 'ink';
-import { UIMessage } from 'ai';
-import { randomUUID } from 'crypto';
-// import { useChat } from '@ai-sdk/react';
 
-import { agentRegistry } from '../../agents/index.js';
-import { useSessionContext } from '../context/SessionContext.js';
+// import { useSessionContext } from '../context/SessionContext.js';
 import { MessageBubble } from './MessageBubble.js';
 import { StatusBar } from './StatusBar.js';
 import { WelcomeScreen } from './WelcomeScreen.js';
 import { InputBox } from './InputBox.js';
+import { useHandlerChat } from '../hooks/useHandlerChat.js';
 
 interface ChatViewProps {
   onSubmit: (value: string) => void;
@@ -21,90 +18,29 @@ function ChatViewInternal({
   onSubmit,
   onExit,
 }: ChatViewProps) {
-  const { session, currentSession, projectPath } = useSessionContext();
+  // const { currentSession, currentAgent } = useSessionContext();
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<UIMessage[]>([]);
-  const [currentUIMessage, setCurrentUIMessage] = useState<UIMessage | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isCallingTool, setIsCallingTool] = useState('');
-
-
-  // Load initial messages from session
-  useEffect(() => {
-    if (currentSession?.messages) {
-      setMessages(currentSession.messages);
-    }
-  }, [currentSession]);
-
-  const processMessage = useCallback(async (userInput: string) => {
-    const agent = agentRegistry.getCurrent();
-
-        // Add user message to existing messages
-    const userMessage: UIMessage = {
-      id: randomUUID(),
-      role: 'user',
-      parts: [{ type: 'text', text: userInput }]
-    };
-
-    const allMessages = [...messages];
-    if(currentUIMessage){
-      allMessages.push(currentUIMessage);
-      setCurrentUIMessage(null);
-    }
-    allMessages.push(userMessage);
-    setMessages(allMessages);
-    
-    // Small delay to ensure state is flushed
-    await new Promise(resolve => setTimeout(resolve, 10));
-    
-    try {
-       await agent.process({
-        messages: allMessages,
-        session: {
-          sessionId: session.id,
-          modelProvider: session.modelProvider,
-          modelName: session.modelName,
-          projectPath,
-        },
-        onStart: () => {
-          setIsProcessing(true);
-        },
-        onStep: (updatedMessages) => {
-          setCurrentUIMessage(updatedMessages);
-        },
-        onToolCallStart: (toolCall) => {
-          setIsCallingTool(toolCall.toolCall.toolName as string);
-        },
-        onToolCallFinish: () => {
-          setIsCallingTool('');
-        },
-      }); 
-
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      console.log(errorMsg);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [messages, session, projectPath, currentUIMessage]);
-
+  const { messages, sendMessage } = useHandlerChat();
+ 
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
       onExit();
       return;
     }
-
     // Check if it's a command (starts with /)
     const isCommand = value.startsWith('/');
-    
+
     // Always call onSubmit to handle commands
     onSubmit(value);
-    
+
     // Only process with AI if it's not a command
     if (!isCommand) {
-      processMessage(value);
+      sendMessage({
+        text: value,
+      });
     }
-  }, [processMessage, onSubmit, onExit]);
+  }, [onSubmit, onExit]);
+
 
   useInput((character, key) => {
 		if (key.return) {
@@ -126,28 +62,7 @@ function ChatViewInternal({
         {messages.map((message, index) => (
           <MessageBubble key={index} message={message} />
         ))}
-        {currentUIMessage && <MessageBubble message={currentUIMessage} />}
       </Box>
-      {isCallingTool && (
-         <Box 
-          marginBottom={0}
-          paddingX={1}
-          paddingY={1}
-          alignItems="flex-start"
-        >
-            <Text color="blue">• {isCallingTool}</Text>
-        </Box>
-      )}
-      {isProcessing && (
-         <Box 
-          marginBottom={0}
-          paddingX={1}
-          paddingY={1}
-          alignItems="flex-start"
-        >
-            <Text color="blue">• Agent is thinking...</Text>
-        </Box>
-      )}
       <StatusBar />
       <InputBox input={input} />
     </Box>

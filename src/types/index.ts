@@ -1,4 +1,19 @@
 import {  ModelMessage, Tool, UIMessage} from 'ai';
+
+export interface ApprovalRequest {
+  type: 'tool-run_command',
+  toolCallId: string,
+  state: 'input-available'    ,
+  title: undefined,
+  input: Record<string, unknown>,
+  output: undefined,
+  rawInput: undefined,
+  errorText: undefined,
+  providerExecuted: undefined,
+  preliminary: undefined,
+  callProviderMetadata: Record<string, unknown>
+}
+
 export interface Agent {
   name: string;
   description: string;

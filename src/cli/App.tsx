@@ -6,7 +6,6 @@ import { SessionSelector } from './components/SessionSelector.js';
 import { ChatView } from './components/ChatView.js';
 import { SessionProvider, useSessionContext } from './context/SessionContext.js';
 import { useViewManager } from './hooks/useViewManager.js';
-import { agentRegistry } from '../agents/index.js';
 import { parseCommand } from '../router/commandRouter.js';
 import { clearTerminal } from './utils/terminal.js';
 
@@ -15,7 +14,6 @@ import { clearTerminal } from './utils/terminal.js';
 function AppContent() {
   const { 
     session, 
-    currentAgent, 
     setCurrentAgent,
     sessions,
     selectSession,
@@ -65,7 +63,7 @@ function AppContent() {
   // Handle new session
   const handleNewSession = useCallback(() => {
     saveCurrentSession();
-    createSession(agentRegistry.getCurrentName());
+    // createSession(agentRegistry.getCurrentName());
     loadSessions();
     showChat();
   }, [saveCurrentSession, createSession, loadSessions, showChat]);
@@ -90,10 +88,7 @@ function AppContent() {
     
     if (isCommand) {
       if (command === 'coder' || command === 'plan') {
-        const success = agentRegistry.setCurrent(command);
-        if (success) {
-          setCurrentAgent(command);
-        }
+        setCurrentAgent(command);
         return;
       }
 

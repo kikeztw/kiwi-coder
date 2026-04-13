@@ -33,7 +33,7 @@ interface SessionContextType {
   // Current session state
   session: Session;
   currentSession: PersistedSession | null;
-  currentAgent: string;
+  currentAgent: 'coder' | 'plan';
   modelDisplayName: string;
   projectPath: string;
   
@@ -48,7 +48,7 @@ interface SessionContextType {
   // Setters
   setProvider: (provider: string) => void;
   setModel: (model: string) => void;
-  setCurrentAgent: (agent: string) => void;
+  setCurrentAgent: (agent: 'coder' | 'plan') => void;
   setStatus: (status: Session['status']) => void;
   updateModelAndSave: (provider: string, model: string, modelId: string, name: string) => void;
   
@@ -61,14 +61,14 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 interface SessionProviderProps {
   children: React.ReactNode;
   projectPath: string;
-  initialAgent?: string;
+  initialAgent?: 'coder' | 'plan';
 }
 
 export function SessionProvider({ children, projectPath, initialAgent = 'coder' }: SessionProviderProps) {
   // Load active session or create default
   const [currentSession, setCurrentSession] = useState<PersistedSession | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
-  const [currentAgent, setCurrentAgent] = useState(initialAgent);
+  const [currentAgent, setCurrentAgent] = useState<'coder' | 'plan'>(initialAgent);
   
   // Initialize session on mount
   useEffect(() => {

@@ -1,11 +1,15 @@
-import { convertToModelMessages, stepCountIs, UIMessage, streamText, readUIMessageStream} from 'ai';
-import type { Agent, AgentContext } from '../types/index.js';
+import { ToolLoopAgent, stepCountIs } from 'ai';
 import { getModel } from '../providers/index.js';
+import { filesystemTools } from '@/tools/filesystem.js';
+import { commandTools } from '@/tools/command.js';
+import { PersistedSession } from '@/workspace/sessionManager.js';
 
-export class PlanAgent implements Agent {
-  public readonly name = 'plan';
-  public readonly description = 'Agent specialized in planning and architecture tasks';
-  public readonly systemPrompt = `You are an expert planning assistant. Your task is to help users plan projects, design architectures, and break down complex tasks.
+export const generatePlannerAgent = (session: PersistedSession) => {
+  const model = getModel(session.model.provider, session.model.name);
+  return new ToolLoopAgent({
+    model: model,
+    stopWhen: stepCountIs(50),
+    instructions: `You are an expert planning assistant. Your task is to help users plan projects, design architectures, and break down complex tasks.
 
 When helping users:
 1. Understand the goal and constraints
@@ -13,42 +17,16 @@ When helping users:
 3. Consider trade-offs and alternatives
 4. Provide clear, actionable plans
 
-Focus on high-level design and strategy.`;
+Focus on high-level design and strategy.`,
+    tools: { ...filesystemTools, ...commandTools },
+    experimental_context: { projectPath: session.projectPath },
+  });
+};
 
-   async process(params: {
-    messages: UIMessage[],
-    session: AgentContext;
-    onStep?: (chunk:  UIMessage) => void,
-    onMessagesUpdate?: (messages: UIMessage[]) => void
-  }): Promise<void> {
-    try {
-      const {messages, session, onStep} = params;
-      const {projectPath} = session;
-      const model = getModel(session.modelProvider, session.modelName);
-      
+export const planAgent = {
+  name: 'plan',
+  description: 'Expert planning assistant for project architecture and task breakdown',
+  generate: generatePlannerAgent,
+};
 
-      const result = streamText({
-        model,
-        system: this.systemPrompt,
-        stopWhen: stepCountIs(50),
-        messages: await convertToModelMessages(messages),
-        experimental_context: { projectPath },
-      });
 
-      let lastUIMessage: UIMessage | null = null;
-      for await (const uiMessage of readUIMessageStream({
-        stream: result.toUIMessageStream(),
-      })) {
-        console.log(uiMessage);
-        onStep?.(uiMessage);
-      }
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Coder agent error:', errorMessage);
-    }
-  }
-}
-
-// Export singleton instance for backward compatibility
-export const planAgent: Agent = new PlanAgent();
