@@ -22,8 +22,8 @@ export const ApprovalDialog = memo(function ApprovalDialog({ command, descriptio
       flexDirection="column"
       marginX={1}
       marginY={0}
-      borderStyle="round"
-      borderColor={isActive ? colors.warning : colors.borderSubtle}
+      // borderStyle="round"
+      // borderColor={isActive ? colors.warning : colors.borderSubtle}
       paddingX={1}
       paddingY={0}
     >

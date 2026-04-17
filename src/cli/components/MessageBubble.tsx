@@ -4,6 +4,8 @@ import { bubbleTheme } from '../theme/colors.js';
 import type { ChatRequestOptions, UIMessage } from 'ai';
 import { isToolUIPart } from 'ai';
 import { ApprovalDialog } from './ApprovalDialog.js';
+import Spinner from 'ink-spinner';
+
 
 interface ApprovalResponse {
   id: string;
@@ -73,6 +75,21 @@ export const MessageBubble = memo<MessageProps>(({ message, onApprove }) => {
                   {bubbleTheme.agent.icon}{' '}
                 </Text>
                 <Text color={bubbleTheme.agent.text}>{part.text}</Text>
+              </Box>
+            );
+          }
+
+          if(isToolUIPart(part) && part.state === 'input-streaming'){
+            return (
+              <Box
+                key={index}
+                marginBottom={0}
+                paddingX={paddingX}
+                paddingY={paddingY}
+                alignItems="flex-start"
+              >
+                <Spinner type="dots" />
+                <Text color={bubbleTheme.agent.text}>{`Executing ${part.title}...`}</Text>
               </Box>
             );
           }

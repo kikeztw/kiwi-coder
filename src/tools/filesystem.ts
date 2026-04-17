@@ -7,6 +7,7 @@ import { resolveAndValidatePath, isBlockedFileName } from './pathValidation.js';
 
 // Read complete contents of a file as text
 export const readTextFile = tool({
+  title: 'Read Text File',
   description: 'Read complete contents of a file as text. Always treats the file as UTF-8 text regardless of extension.',
   inputSchema: z.object({
     path: z.string().describe('Path to the file to read'),
@@ -41,6 +42,7 @@ export const readTextFile = tool({
 
 // Read an image or audio file as base64
 export const readMediaFile = tool({
+  title: 'Read Media File',
   description: 'Read an image or audio file and return base64 data with the corresponding MIME type',
   inputSchema: z.object({
     path: z.string().describe('Path to the media file'),
@@ -81,6 +83,7 @@ export const readMediaFile = tool({
 
 // Read multiple files simultaneously
 export const readMultipleFiles = tool({
+  title: 'Read Multiple Files',
   description: 'Read multiple files simultaneously. Failed reads won\'t stop the entire operation.',
   inputSchema: z.object({
     paths: z.array(z.string()).describe('Array of file paths to read'),
@@ -112,6 +115,7 @@ export const readMultipleFiles = tool({
 
 // Create new file or overwrite existing
 export const writeFile = tool({
+  title: 'Write File',
   description: 'Create new file or overwrite existing (exercise caution with this)',
   inputSchema: z.object({
     path: z.string().describe('File location'),
@@ -136,6 +140,7 @@ export const writeFile = tool({
 
 // Make selective edits using pattern matching
 export const editFile = tool({
+  title: 'Edit File',
   description: 'Make selective edits to a file using advanced pattern matching and formatting. Best practice: Always use dryRun first to preview changes.',
   inputSchema: z.object({
     path: z.string().describe('Path to the file to edit'),
@@ -188,6 +193,7 @@ export const editFile = tool({
 
 // Create new directory
 export const createDirectory = tool({
+  title: 'Create Directory',
   description: 'Create new directory or ensure it exists. Creates parent directories if needed.',
   inputSchema: z.object({
     path: z.string().describe('Directory path to create'),
@@ -207,6 +213,7 @@ export const createDirectory = tool({
 
 // List directory contents
 export const listDirectory = tool({
+  title: 'List Directory',
   description: 'List directory contents with [FILE] or [DIR] prefixes',
   inputSchema: z.object({
     path: z.string().describe('Directory path to list'),
@@ -234,6 +241,7 @@ export const listDirectory = tool({
 
 // List directory contents with sizes
 export const listDirectoryWithSizes = tool({
+  title: 'List Directory with Sizes',
   description: 'List directory contents with [FILE] or [DIR] prefixes, including file sizes and summary statistics',
   inputSchema: z.object({
     path: z.string().describe('Directory path to list'),
@@ -296,6 +304,7 @@ export const listDirectoryWithSizes = tool({
 
 // Move or rename file
 export const moveFile = tool({
+  title: 'Move File',
   description: 'Move or rename files and directories. Fails if destination exists.',
   inputSchema: z.object({
     source: z.string().describe('Source path'),
@@ -321,6 +330,7 @@ export const moveFile = tool({
 
 // Search for files matching pattern
 export const searchFiles = tool({
+  title: 'Search Files',
   description: 'Recursively search for files/directories that match simple pattern (supports * wildcard)',
   inputSchema: z.object({
     path: z.string().describe('Starting directory'),
@@ -374,6 +384,7 @@ export const searchFiles = tool({
 
 // Get directory tree structure
 export const directoryTree = tool({
+  title: 'Directory Tree',
   description: 'Get recursive JSON tree structure of directory contents',
   inputSchema: z.object({
     path: z.string().describe('Starting directory'),
@@ -428,6 +439,7 @@ export const directoryTree = tool({
 
 // Get file/directory metadata
 export const getFileInfo = tool({
+  title: 'Get File Info',
   description: 'Get detailed file/directory metadata including size, timestamps, type, and permissions',
   inputSchema: z.object({
     path: z.string().describe('Path to file or directory'),
@@ -455,6 +467,7 @@ export const getFileInfo = tool({
 
 // List allowed directories (for workspace security)
 export const listAllowedDirectories = tool({
+  title: 'List Allowed Directories',
   description: 'List all directories the agent is allowed to access',
   inputSchema: z.object({}),
   execute: async (_input, options) => {

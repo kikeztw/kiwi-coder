@@ -1,6 +1,7 @@
 import { memo, useState, useCallback } from 'react';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { useInput } from 'ink';
+import Spinner from 'ink-spinner';
 
 // import { useSessionContext } from '../context/SessionContext.js';
 import { MessageBubble } from './MessageBubble.js';
@@ -20,7 +21,7 @@ function ChatViewInternal({
 }: ChatViewProps) {
   // const { currentSession, currentAgent } = useSessionContext();
   const [input, setInput] = useState('');
-  const { messages, sendMessage, addToolApprovalResponse } = useHandlerChat();
+  const { messages, sendMessage, addToolApprovalResponse, status } = useHandlerChat();
  
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
@@ -70,6 +71,13 @@ function ChatViewInternal({
             }}
           />
         ))}
+        {(status === 'streaming' || status === 'submitted') && (
+          <Box marginTop={1}>
+            <Text color="cyan">
+              <Spinner type="dots" /> Processing...
+            </Text>
+          </Box>
+        )}
       </Box>
       <StatusBar />
       <InputBox input={input} />
