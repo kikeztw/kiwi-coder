@@ -1,5 +1,7 @@
 import { memo } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
+import SelectInput from 'ink-select-input';
+import Spinner from 'ink-spinner';
 import { colors } from '../theme/colors.js';
 
 interface ApprovalDialogProps {
@@ -9,13 +11,12 @@ interface ApprovalDialogProps {
   onApprove: (approved: boolean) => void;
 }
 
-export const ApprovalDialog = memo(function ApprovalDialog({ command, description, isActive, onApprove }: ApprovalDialogProps) {
-  useInput((char) => {
-    if (!isActive) return;
-    if (char === 'y') onApprove(true);
-    if (char === 'n') onApprove(false);
-  });
+const selectItems = [
+  { label: 'Yes — approve', value: 'yes' },
+  { label: 'No  — deny',    value: 'no'  },
+];
 
+export const ApprovalDialog = memo(function ApprovalDialog({ command, description, isActive, onApprove }: ApprovalDialogProps) {
   return (
     <Box
       flexDirection="column"
@@ -30,9 +31,6 @@ export const ApprovalDialog = memo(function ApprovalDialog({ command, descriptio
         <Text color={isActive ? colors.warning : colors.textMuted} bold>
           ⚠  Command Approval Required
         </Text>
-        {!isActive && (
-          <Text color={colors.textMuted}> (waiting...)</Text>
-        )}
       </Box>
 
       <Box marginBottom={1}>
@@ -46,19 +44,22 @@ export const ApprovalDialog = memo(function ApprovalDialog({ command, descriptio
         </Box>
       )}
 
-      <Box>
-        {isActive ? (
-          <>
-            <Text color={colors.textMuted}>Approve? </Text>
-            <Text color={colors.success} bold>y</Text>
-            <Text color={colors.textMuted}> to approve, </Text>
-            <Text color={colors.accentError} bold>n</Text>
-            <Text color={colors.textMuted}> to deny</Text>
-          </>
-        ) : (
-          <Text color={colors.textMuted}>Pending response...</Text>
-        )}
-      </Box>
+      {isActive ? (
+        <Box flexDirection="column">
+          <Text color={colors.textMuted}>Do you want to proceed?</Text>
+          <SelectInput
+            items={selectItems}
+            onSelect={(item) => onApprove(item.value === 'yes')}
+          />
+        </Box>
+      ) : (
+        <Box>
+          <Text color={colors.textMuted}>
+            <Spinner type="dots" />
+          </Text>
+          <Text color={colors.textMuted}> Waiting for previous approval...</Text>
+        </Box>
+      )}
     </Box>
   );
 });

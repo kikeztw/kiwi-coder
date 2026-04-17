@@ -20,7 +20,7 @@ function ChatViewInternal({
 }: ChatViewProps) {
   // const { currentSession, currentAgent } = useSessionContext();
   const [input, setInput] = useState('');
-  const { messages, sendMessage } = useHandlerChat();
+  const { messages, sendMessage, addToolApprovalResponse } = useHandlerChat();
  
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
@@ -55,12 +55,20 @@ function ChatViewInternal({
 		}
 	});
 
+  // console.log('messages', JSON.stringify(messages, null, 2));
+
   return (
     <Box flexDirection="column">
       <WelcomeScreen />
       <Box flexDirection="column" paddingX={1}>
         {messages.map((message, index) => (
-          <MessageBubble key={index} message={message} />
+          <MessageBubble
+            key={index}
+            message={message}
+            onApprove={({ id, approved, reason }) =>{
+              addToolApprovalResponse({ id, approved, reason })
+            }}
+          />
         ))}
       </Box>
       <StatusBar />
