@@ -75,10 +75,12 @@ export function SessionProvider({ children, projectPath, initialAgent = 'coder' 
     const activeSession = loadActiveSession(projectPath);
     if (activeSession) {
       setCurrentSession(activeSession);
+      setCurrentAgent(activeSession.agent as 'coder' | 'plan');
     } else if (loadedSessions.length > 0) {
       const mostRecent = loadSession(projectPath, loadedSessions[0].id);
       if (mostRecent) {
         setCurrentSession(mostRecent);
+        setCurrentAgent(mostRecent.agent as 'coder' | 'plan');
         setActiveSession(projectPath, mostRecent.id);
       }
     } else {
@@ -108,6 +110,7 @@ export function SessionProvider({ children, projectPath, initialAgent = 'coder' 
     const loaded = loadSession(projectPath, sessionId);
     if (loaded) {
       setCurrentSession(loaded);
+      setCurrentAgent(loaded.agent as 'coder' | 'plan');
       setActiveSession(projectPath, sessionId);
       setSessions(listSessions(projectPath));
     }
