@@ -62,6 +62,24 @@ export const MessageBubble = memo<MessageProps>(({ message, onApprove }) => {
     return (
       <Box flexDirection="column">
         {parts.map((part, index) => {
+
+           if (part.type === 'reasoning') {
+            return (
+              <Box
+                key={index}
+                marginBottom={0}
+                paddingX={paddingX}
+                paddingY={paddingY}
+                alignItems="flex-start"
+              >
+                <Text color="gray" dimColor bold>
+                  🧠 Thinking: 
+                </Text>
+                <Text color="gray" dimColor>{part.text}</Text>
+              </Box>
+            );
+          }
+
           if (part.type === 'text') {
             return (
               <Box
