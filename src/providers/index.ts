@@ -2,6 +2,7 @@ import { config as dotenvConfig } from 'dotenv';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -170,6 +171,39 @@ export async function fetchGeminiModels(apiKey: string): Promise<ModelInfo[]> {
     }));
 }
 
+export async function fetchOpenRouterModels(apiKey: string): Promise<ModelInfo[]> {
+  const url = 'https://openrouter.ai/api/v1/models';
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch OpenRouter models: ${response.statusText}`);
+  }
+  const data = await response.json() as {
+    data: Array<{
+      id: string;
+      name: string;
+      pricing: {
+        prompt: string;
+        completion: string;
+      };
+    }>;
+  };
+  // Filter for free models (pricing is 0 or ends with :free)
+  return data.data
+    .filter(m => {
+      const isFreeModel = m.id.endsWith(':free');
+      const isFreePricing = m.pricing?.prompt === '0' && m.pricing?.completion === '0';
+      return isFreeModel || isFreePricing;
+    })
+    .map(m => ({
+      id: `openrouter/${m.id}`,
+      name: m.name,
+    }));
+}
+
 export function getModel(provider: string, modelName: string): LanguageModel {
   const apiKey = getApiKey(provider);
   
@@ -189,6 +223,10 @@ export function getModel(provider: string, modelName: string): LanguageModel {
     case 'google': {
       const google = createGoogleGenerativeAI({ apiKey });
       return google(modelName);
+    }
+    case 'openrouter': {
+      const openrouter = createOpenRouter({ apiKey });
+      return openrouter(modelName);
     }
     default:
       throw new Error(`Unsupported provider: ${provider}`);
