@@ -16,7 +16,7 @@ interface GroupedModel extends ModelInfo {
   providerName: string;
 }
 
-const SCROLL_VIEW_HEIGHT = 15;
+const SCROLL_VIEW_HEIGHT = 40;
 
 export function ModelSelector({ currentModelId, onSelect, onCancel }: ModelSelectorProps) {
   const [geminiModels, setGeminiModels] = useState<ModelInfo[] | null>(null);

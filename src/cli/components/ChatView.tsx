@@ -16,7 +16,7 @@ interface ChatViewProps {
   onExit: () => void;
 }
 
-const CHAT_VIEW_HEIGHT = 20;
+const CHAT_VIEW_HEIGHT = 40;
 
 function ChatViewInternal({
   onSubmit,
@@ -36,6 +36,20 @@ function ChatViewInternal({
       stdout?.off('resize', handleResize);
     };
   }, [stdout]);
+
+  // Scroll to bottom on mount
+  useEffect(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToBottom();
+    }, 100);
+  }, []);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToBottom();
+    }, 0);
+  }, [messages.length]);
  
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
