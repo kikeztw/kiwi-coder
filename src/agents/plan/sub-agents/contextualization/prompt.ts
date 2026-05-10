@@ -186,3 +186,6 @@ General rules for both modes:
 INITIAL STATE
 
 At the start of each new task your state is clean. You have no prior knowledge of the codebase from previous tasks. Everything you know must come from what you read during the current session or from the Comprehension Document in new project mode.`;
+
+
+export const CONTEXTUALIZATION_TOOL_DESCRIPTION = 'Invokes the Contextualization Subagent to explore the existing codebase and build a clear map of how the system relates to the feature described in the Comprehension Document. Use this tool when you need to understand the current state of the codebase before proceeding with solution design. The subagent reads files, identifies relevant modules, entities, services, integration points, and documents patterns and risks. Provide the COMPREHENSION DOCUMENT as input. The output is a structured Context Map with sections: Relevant Modules and Files, Entities and Data Structures, Services and Business Logic, Integration Points, Existing Patterns and Conventions, Risks and Side Effects, and Gaps and Uncertainties. Do not use this tool if the Comprehension Document is empty or nonsensical — in that case, ask the user for clarification first.';
