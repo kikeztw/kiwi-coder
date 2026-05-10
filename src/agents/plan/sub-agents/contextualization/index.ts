@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { readTextFile, readMultipleFiles } from '../../../../tools/filesystem.js';
 import { CONTEXTUALIZATION_PROMPT, CONTEXTUALIZATION_TOOL_DESCRIPTION } from './prompt.js';
 
-export const generateContextualizationAgent = (model: LanguageModel) => {
+export const generateContextualizationAgent = (model: LanguageModel, projectPath: string) => {
   const agent = new ToolLoopAgent({
     model,
     tools: {
       readTextFile,
       readMultipleFiles,
     },
+    experimental_context: { projectPath: projectPath },
     instructions: CONTEXTUALIZATION_PROMPT,
   });
 

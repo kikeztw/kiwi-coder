@@ -9,8 +9,8 @@ import { PLANNER_PROMPT } from './prompt.js';
 export const generatePlannerAgent = (session: PersistedSession) => {
   const model = getModel(session.model.provider, session.model.name);
   const { agentTool: comprehensionAgentTool } = generateComprehensionAgent(model);
-  const { agentTool: contextualizationAgentTool } = generateContextualizationAgent(model);
-  const { agentTool: solutionDesignAgentTool } = generateSolutionDesignAgent(model);
+  const { agentTool: contextualizationAgentTool } = generateContextualizationAgent(model, session.projectPath);
+  const { agentTool: solutionDesignAgentTool } = generateSolutionDesignAgent(model, session.projectPath);
   return new ToolLoopAgent({
     model: model,
     // stopWhen: stepCountIs(50),

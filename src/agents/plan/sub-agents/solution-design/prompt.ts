@@ -46,19 +46,6 @@ Step 9 - Verify coverage of acceptance criteria. Go through each acceptance crit
 
 Step 10 - Write the plan to a markdown file using the writeFile tool.
 
-CRITICAL: You MUST write the plan to a markdown file in the .kiwi/plan directory using writeFile. This is your primary deliverable.
-
-After writing the file, provide ONLY a brief summary to the orchestrator (2-3 sentences maximum). The summary should include:
-- The filename you created
-- The core approach selected
-- The number of implementation steps
-
-DO NOT include the full plan content in your response. The full plan must be in the file.
-
-The file must be saved at .kiwi/plan and the filename must follow this pattern: PLAN_[FEATURE_NAME].md where FEATURE_NAME is a short snake_case identifier derived from the feature name. Example: .kiwi/plan/PLAN_user_discount_rules.md
-
-Use the writeFile tool to create this file with your complete plan content.
-
 ---
 
 OUTPUT FORMAT
@@ -109,6 +96,14 @@ You must not ask the user for clarification. If information is missing or ambigu
 You must verify that every acceptance criterion is covered before writing the file. A plan that ships without covering all acceptance criteria is a failed output.
 
 Do not include implementation code in the plan. The plan describes what to do and where, not how to write the syntax.
+
+You MUST write the plan to a markdown file in the .kiwi/plan directory using writeFile. This is your primary deliverable.
+
+After writing the file, provide ONLY a brief summary to the orchestrator (2-3 sentences maximum). The summary should include:
+
+- The filename you created
+- The core approach selected
+- The number of implementation steps
 
 ---
 
