@@ -3,7 +3,7 @@ import { Box, Text, useInput, useStdout } from 'ink';
 import Spinner from 'ink-spinner';
 import { ScrollView, ScrollViewRef } from 'ink-scroll-view';
 import { colors } from '../theme/colors.js';
-import { getAllModels, fetchGeminiModels, type ModelInfo } from '../../providers/index.js';
+import { getAllModels, fetchGeminiModels, fetchOpenRouterModels, type ModelInfo } from '../../providers/index.js';
 
 interface ModelSelectorProps {
   currentModelId: string;
@@ -22,6 +22,9 @@ export function ModelSelector({ currentModelId, onSelect, onCancel }: ModelSelec
   const [geminiModels, setGeminiModels] = useState<ModelInfo[] | null>(null);
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiError, setGeminiError] = useState<string | null>(null);
+  const [openrouterModels, setOpenrouterModels] = useState<ModelInfo[] | null>(null);
+  const [openrouterLoading, setOpenrouterLoading] = useState(false);
+  const [openrouterError, setOpenrouterError] = useState<string | null>(null);
 
   // Fetch Gemini models on mount if API key is available
   useEffect(() => {
@@ -39,14 +42,42 @@ export function ModelSelector({ currentModelId, onSelect, onCancel }: ModelSelec
       });
   }, []);
 
+  // Fetch OpenRouter models on mount if API key is available
+  useEffect(() => {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) return;
+    setOpenrouterLoading(true);
+    fetchOpenRouterModels(apiKey)
+      .then(models => {
+        setOpenrouterModels(models);
+        setOpenrouterLoading(false);
+      })
+      .catch(err => {
+        setOpenrouterError(err.message ?? 'Failed to fetch OpenRouter models');
+        setOpenrouterLoading(false);
+      });
+  }, []);
+
   const allModels = useMemo(() => {
     const base = getAllModels();
-    if (!geminiModels) return base;
+    let result = base;
+    
     // Replace static Google models with live-fetched ones
-    const nonGoogle = base.filter(m => m.provider !== 'google');
-    const liveGoogle = geminiModels.map(m => ({ ...m, provider: 'google' }));
-    return [...nonGoogle, ...liveGoogle];
-  }, [geminiModels]);
+    if (geminiModels) {
+      const nonGoogle = result.filter(m => m.provider !== 'google');
+      const liveGoogle = geminiModels.map(m => ({ ...m, provider: 'google' }));
+      result = [...nonGoogle, ...liveGoogle];
+    }
+    
+    // Add OpenRouter free models if available
+    if (openrouterModels && openrouterModels.length > 0) {
+      const nonOpenrouter = result.filter(m => m.provider !== 'openrouter');
+      const liveOpenrouter = openrouterModels.map(m => ({ ...m, provider: 'openrouter' }));
+      result = [...nonOpenrouter, ...liveOpenrouter];
+    }
+    
+    return result;
+  }, [geminiModels, openrouterModels]);
 
   // Group models by provider for display
   const groupedModels = useMemo(() => {
@@ -187,6 +218,15 @@ export function ModelSelector({ currentModelId, onSelect, onCancel }: ModelSelec
               )}
               {providerKey === 'google' && geminiError && (
                 <Text color={colors.warning}> (using cached list)</Text>
+              )}
+              {providerKey === 'openrouter' && openrouterLoading && (
+                <Text color={colors.info}> <Spinner type="dots" /> fetching free models...</Text>
+              )}
+              {providerKey === 'openrouter' && openrouterError && (
+                <Text color={colors.warning}> (error fetching models)</Text>
+              )}
+              {providerKey === 'openrouter' && !openrouterLoading && openrouterModels && openrouterModels.length === 0 && (
+                <Text color={colors.warning}> (no free models available)</Text>
               )}
             </Box>
             
