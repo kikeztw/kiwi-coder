@@ -8,7 +8,7 @@ import { MessageBubble } from './MessageBubble.js';
 import { StatusBar } from './StatusBar.js';
 import { WelcomeScreen } from './WelcomeScreen.js';
 import { InputBox } from './InputBox.js';
-import { useHandlerChat } from '../hooks/useHandlerChat.js';
+import { useHandlerChat, type AgentUIMessage } from '../hooks/useHandlerChat.js';
 
 interface ChatViewProps {
   onSubmit: (value: string) => void;
@@ -21,7 +21,12 @@ function ChatViewInternal({
 }: ChatViewProps) {
   // const { currentSession, currentAgent } = useSessionContext();
   const [input, setInput] = useState('');
-  const { messages, sendMessage, addToolApprovalResponse, status } = useHandlerChat();
+  const { messages, sendMessage, addToolApprovalResponse, status } = useHandlerChat() as {
+    messages: AgentUIMessage[];
+    sendMessage: (message: { text: string }) => void;
+    addToolApprovalResponse: (response: { id: string; approved: boolean; reason?: string }) => void;
+    status: string;
+  };
  
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {

@@ -8,6 +8,9 @@ import { useCallback, useMemo } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import type { UIMessage } from 'ai';
 
+export type CoderAgentUIMessage = InferAgentUIMessage<ReturnType<typeof generateCoderAgent>>;
+export type PlanAgentUIMessage = InferAgentUIMessage<ReturnType<typeof generatePlannerAgent>>;
+export type AgentUIMessage = CoderAgentUIMessage | PlanAgentUIMessage;
 
 export const useHandlerChat = () => {
   const { currentSession, currentAgent, projectPath } = useSessionContext();
@@ -26,9 +29,6 @@ export const useHandlerChat = () => {
     () => generatePlannerAgent(currentSession as PersistedSession),
     [currentSession?.id],
   );
-
-  type CoderAgentUIMessage = InferAgentUIMessage<typeof coderAgent>;
-  type PlanAgentUIMessage = InferAgentUIMessage<typeof planAgent>;
 
   // Load messages once per session ID change
   const initialMessages = useMemo<UIMessage[]>(
