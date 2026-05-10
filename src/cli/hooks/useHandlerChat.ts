@@ -12,6 +12,12 @@ import type { UIMessage } from 'ai';
 export const useHandlerChat = () => {
   const { currentSession, currentAgent, projectPath } = useSessionContext();
 
+  // Return early if no session is available - return a disabled chat
+  if (!currentSession) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return useChat({ id: 'no-session', messages: [] }) as any;
+  }
+
   const coderAgent = useMemo(
     () => generateCoderAgent(currentSession as PersistedSession),
     [currentSession?.id],
@@ -23,7 +29,7 @@ export const useHandlerChat = () => {
 
   // Load messages once per session ID change
   const initialMessages = useMemo<UIMessage[]>(
-    () => (currentSession ? loadMessages(projectPath, currentSession.id) : []),
+    () => loadMessages(projectPath, currentSession.id),
     [currentSession?.id, projectPath],
   );
 
