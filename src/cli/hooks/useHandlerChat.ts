@@ -12,7 +12,14 @@ export type CoderAgentUIMessage = InferAgentUIMessage<ReturnType<typeof generate
 export type PlanAgentUIMessage = InferAgentUIMessage<ReturnType<typeof generatePlannerAgent>>;
 export type AgentUIMessage = CoderAgentUIMessage | PlanAgentUIMessage;
 
-export const useHandlerChat = () => {
+export type UseHandlerChatReturn = {
+  messages: AgentUIMessage[];
+  sendMessage: (message: { text: string }) => void;
+  addToolApprovalResponse: (response: { id: string; approved: boolean; reason?: string }) => void;
+  status: string;
+};
+
+export const useHandlerChat = (): UseHandlerChatReturn => {
   const { currentSession, currentAgent, projectPath } = useSessionContext();
 
   // Return early if no session is available - return a disabled chat
@@ -64,5 +71,5 @@ export const useHandlerChat = () => {
   });
 
   const chat = currentAgent === 'coder' ? coderAgentChat : planAgentChat;
-  return chat;
+  return chat as unknown as UseHandlerChatReturn;
 };
