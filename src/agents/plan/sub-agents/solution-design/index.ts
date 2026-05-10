@@ -1,6 +1,6 @@
 import { ToolLoopAgent, tool, LanguageModel } from 'ai';
 import { z } from 'zod';
-import { writeFile } from '../../../tools/filesystem.js';
+import { writeFile } from '../../../../tools/filesystem.js';
 import { SOLUTION_DESIGN_PROMPT } from './prompt.js';
 
 export const generateSolutionDesignAgent = (model: LanguageModel) => {

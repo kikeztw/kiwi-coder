@@ -1,6 +1,6 @@
 import { ToolLoopAgent, tool, LanguageModel } from 'ai';
 import { z } from 'zod';
-import { readTextFile, readMultipleFiles } from '../../../tools/filesystem.js';
+import { readTextFile, readMultipleFiles } from '../../../../tools/filesystem.js';
 import { CONTEXTUALIZATION_PROMPT } from './prompt.js';
 
 export const generateContextualizationAgent = (model: LanguageModel) => {

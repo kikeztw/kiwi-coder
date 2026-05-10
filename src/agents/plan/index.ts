@@ -1,9 +1,9 @@
 import { ToolLoopAgent } from 'ai';
 import { getModel } from '../../providers/index.js';
 import { PersistedSession } from '@/workspace/sessionManager.js';
-import { generateComprehensionAgent } from '../sub-agents/comprehension/index.js';
-import { generateContextualizationAgent } from '../sub-agents/contextualization/index.js';
-import { generateSolutionDesignAgent } from '../sub-agents/solution-design/index.js';
+import { generateComprehensionAgent } from './sub-agents/comprehension/index.js';
+import { generateContextualizationAgent } from './sub-agents/contextualization/index.js';
+import { generateSolutionDesignAgent } from './sub-agents/solution-design/index.js';
 
 export const generatePlannerAgent = (session: PersistedSession) => {
   const model = getModel(session.model.provider, session.model.name);
