@@ -1,2 +1,2 @@
-export { coderAgent, generateCoderAgent } from './coder.js';
-export { planAgent, generatePlannerAgent } from './plan.js';
+export { coderAgent, generateCoderAgent } from './coder/index.js';
+export { planAgent, generatePlannerAgent } from './plan/index.js';

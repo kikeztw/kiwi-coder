@@ -1,15 +1,4 @@
-import { ToolLoopAgent, stepCountIs } from 'ai';
-import { getModel } from '../providers/index.js';
-import { filesystemTools } from '@/tools/filesystem.js';
-import { commandTools } from '@/tools/command.js';
-import { PersistedSession } from '@/workspace/sessionManager.js';
-
-export const generateCoderAgent = (session: PersistedSession) => {
-  const model = getModel(session.model.provider, session.model.name);
-  return new ToolLoopAgent({
-    model: model,
-    stopWhen: stepCountIs(50),
-    instructions: `You are an expert coding assistant and autonomous executor.
+export const CODER_PROMPT = `You are an expert coding assistant and autonomous executor.
 
 Your role is to complete coding tasks end-to-end with minimal back-and-forth.
 Think of yourself as a productive engineer who works independently and only asks questions when facing critical blockers.
@@ -83,16 +72,4 @@ Example:
 **Answer**: The authentication system is now implemented in \`src/auth/\`. All tests pass and the build is successful.
 ---
 
-Always operate within the workspace directory for security.`,
-    tools: { ...filesystemTools, ...commandTools },
-    experimental_context: { projectPath: session.projectPath },
-  });
-};
-
-export const coderAgent = {
-  name: 'coder',
-  description: 'Expert coding assistant for writing, reading, and modifying code files',
-  generate: generateCoderAgent,
-};
-
-
+Always operate within the workspace directory for security.`;
