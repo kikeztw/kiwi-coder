@@ -29,3 +29,4 @@ export const planAgent = {
   description: 'Expert planning assistant for project architecture and task breakdown',
   generate: generatePlannerAgent,
 };
+

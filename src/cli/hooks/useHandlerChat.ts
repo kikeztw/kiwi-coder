@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react';
-import { DirectChatTransport } from 'ai';
+import { DirectChatTransport, InferAgentUIMessage } from 'ai';
 import { generateCoderAgent } from '@/agents';
 import { generatePlannerAgent } from '@/agents';
 import { useSessionContext } from '../context/SessionContext';
@@ -27,6 +27,9 @@ export const useHandlerChat = () => {
     [currentSession?.id],
   );
 
+  type CoderAgentUIMessage = InferAgentUIMessage<typeof coderAgent>;
+  type PlanAgentUIMessage = InferAgentUIMessage<typeof planAgent>;
+
   // Load messages once per session ID change
   const initialMessages = useMemo<UIMessage[]>(
     () => loadMessages(projectPath, currentSession.id),
@@ -42,18 +45,18 @@ export const useHandlerChat = () => {
     [currentSession?.id, projectPath],
   );
 
-  const coderAgentChat = useChat({
+  const coderAgentChat = useChat<CoderAgentUIMessage>({
     id: currentSession?.id,
-    messages: initialMessages,
+    messages: initialMessages as any,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transport: new DirectChatTransport({ agent: coderAgent }) as any,
     onFinish: () => persistMessages(coderAgentChat.messages),
   });
 
-  const planAgentChat = useChat({
+  const planAgentChat = useChat<PlanAgentUIMessage>({
     id: currentSession?.id ? `${currentSession.id}-plan` : undefined,
-    messages: initialMessages,
+    messages: initialMessages as any,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transport: new DirectChatTransport({ agent: planAgent }) as any,
