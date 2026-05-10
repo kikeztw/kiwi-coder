@@ -1,8 +1,7 @@
-import { memo, useState, useCallback, useRef, useEffect } from 'react';
-import { Box, Text, useStdout } from 'ink';
+import { memo, useState, useCallback } from 'react';
+import { Box, Text } from 'ink';
 import { useInput } from 'ink';
 import Spinner from 'ink-spinner';
-import { ScrollView, ScrollViewRef } from 'ink-scroll-view';
 
 // import { useSessionContext } from '../context/SessionContext.js';
 import { MessageBubble } from './MessageBubble.js';
@@ -16,8 +15,6 @@ interface ChatViewProps {
   onExit: () => void;
 }
 
-const CHAT_VIEW_HEIGHT = 40;
-
 function ChatViewInternal({
   onSubmit,
   onExit,
@@ -25,31 +22,6 @@ function ChatViewInternal({
   // const { currentSession, currentAgent } = useSessionContext();
   const [input, setInput] = useState('');
   const { messages, sendMessage, addToolApprovalResponse, status } = useHandlerChat();
-  const scrollRef = useRef<ScrollViewRef>(null);
-  const { stdout } = useStdout();
-
-  // Handle terminal resize
-  useEffect(() => {
-    const handleResize = () => scrollRef.current?.remeasure();
-    stdout?.on('resize', handleResize);
-    return () => {
-      stdout?.off('resize', handleResize);
-    };
-  }, [stdout]);
-
-  // Scroll to bottom on mount
-  useEffect(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToBottom();
-    }, 100);
-  }, []);
-
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToBottom();
-    }, 0);
-  }, [messages.length]);
  
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
@@ -89,27 +61,23 @@ function ChatViewInternal({
   return (
     <Box flexDirection="column">
       <WelcomeScreen />
-      <Box flexDirection="column" height={CHAT_VIEW_HEIGHT}>
-        <ScrollView ref={scrollRef} height={CHAT_VIEW_HEIGHT}>
-          <Box flexDirection="column" paddingX={1}>
-            {messages.map((message, index) => (
-              <MessageBubble
-                key={index}
-                message={message}
-                onApprove={({ id, approved, reason }) =>{
-                  addToolApprovalResponse({ id, approved, reason })
-                }}
-              />
-            ))}
-            {(status === 'streaming' || status === 'submitted') && (
-              <Box marginTop={1}>
-                <Text color="cyan">
-                  <Spinner type="dots" /> Processing...
-                </Text>
-              </Box>
-            )}
+      <Box flexDirection="column" paddingX={1}>
+        {messages.map((message, index) => (
+          <MessageBubble
+            key={index}
+            message={message}
+            onApprove={({ id, approved, reason }) =>{
+              addToolApprovalResponse({ id, approved, reason })
+            }}
+          />
+        ))}
+        {(status === 'streaming' || status === 'submitted') && (
+          <Box marginTop={1}>
+            <Text color="cyan">
+              <Spinner type="dots" /> Processing...
+            </Text>
           </Box>
-        </ScrollView>
+        )}
       </Box>
       <StatusBar />
       <InputBox input={input} />
