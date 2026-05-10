@@ -1,72 +1,79 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Box, useInput, useApp } from 'ink';
 import { ModelSelector } from './components/ModelSelector.js';
 import { SessionManager } from './components/SessionManager.js';
-import { SessionSelector } from './components/SessionSelector.js';
 import { ChatView } from './components/ChatView.js';
 import { SessionProvider, useSessionContext } from './context/SessionContext.js';
-import { useViewManager } from './hooks/useViewManager.js';
+import { useViewMachine } from './hooks/useViewMachine.js';
 import { parseCommand } from '../router/commandRouter.js';
 import { clearTerminal } from './utils/terminal.js';
 
 
 
 function AppContent() {
-  const { 
-    session, 
+  const {
+    session,
+    currentSession,
     setCurrentAgent,
     sessions,
-    selectSession,
+    selectSession: selectSessionContext,
     createSession,
     deleteCurrentSession,
     updateModelAndSave,
     saveCurrentSession,
     loadSessions,
   } = useSessionContext();
-  
-  const { view, showChat, showModelSelector, showSessionManager, isSessionSelector, isSessionManager } = useViewManager();
+
+  const {
+    view,
+    sessionManagerMode,
+    showChat,
+    showModelSelector,
+    showSessionSelector,
+    selectModel,
+    selectSession: selectSessionView,
+    cancel,
+    isSessionSelector,
+  } = useViewMachine({
+    saveCurrentSession,
+    loadSessions,
+  });
   const { exit } = useApp();
-  
-  const [sessionManagerMode, setSessionManagerMode] = useState<'select' | 'load' | 'delete'>('select');
 
   // Handle session selection
   const handleSessionSelect = useCallback((sessionId: string) => {
-    selectSession(sessionId);
-    showChat();
-  }, [selectSession, showChat]);
+    selectSessionContext(sessionId);
+    selectSessionView(sessionId);
+  }, [selectSessionContext, selectSessionView]);
 
   // Handle session manager selection
   const handleSessionManagerSelect = useCallback((sessionId: string) => {
     if (sessionManagerMode === 'delete') {
       deleteCurrentSession();
-      loadSessions();
       showChat();
     } else {
       handleSessionSelect(sessionId);
     }
-  }, [sessionManagerMode, deleteCurrentSession, loadSessions, showChat, handleSessionSelect]);
+  }, [sessionManagerMode, deleteCurrentSession, showChat, handleSessionSelect]);
 
   // Handle session deletion
   const handleSessionDelete = useCallback((_sessionId: string) => {
     deleteCurrentSession();
-    loadSessions();
     showChat();
-  }, [deleteCurrentSession, loadSessions, showChat]);
+  }, [deleteCurrentSession, showChat]);
 
   // Handle model selection
   const handleModelSelect = useCallback((provider: string, model: string, modelId: string) => {
     updateModelAndSave(provider, model, modelId, model);
-    clearTerminal();
-    showChat();
-  }, [updateModelAndSave, showChat]);
+    selectModel(provider, model, modelId);
+  }, [updateModelAndSave, selectModel]);
 
   // Handle new session
   const handleNewSession = useCallback(() => {
     saveCurrentSession();
-    // createSession(agentRegistry.getCurrentName());
-    loadSessions();
+    createSession();
     showChat();
-  }, [saveCurrentSession, createSession, loadSessions, showChat]);
+  }, [saveCurrentSession, createSession, showChat]);
 
   // Clear terminal and exit
   const handleExit = useCallback(() => {
@@ -75,17 +82,17 @@ function AppContent() {
     exit();
   }, [saveCurrentSession, exit]);
 
-  // Handle Ctrl+C to exit (only when not in selector/manager)
+  // Handle Ctrl+C to exit (only when not in selector)
   useInput((input, key) => {
     if (key.ctrl && input === 'c') {
       handleExit();
     }
-  }, { isActive: !isSessionSelector && !isSessionManager });
+  }, { isActive: !isSessionSelector });
 
   // Handle commands
   const handleSubmit = useCallback((value: string) => {
     const { isCommand, command } = parseCommand(value);
-    
+
     if (isCommand) {
       if (command === 'coder' || command === 'plan') {
         setCurrentAgent(command);
@@ -97,64 +104,36 @@ function AppContent() {
         return;
       }
 
-      if (command === 'sessions') {
-        loadSessions();
-        if (sessions.length > 0) {
-          setSessionManagerMode('select');
-          showSessionManager();
-        }
-        return;
-      }
-
-      if (command === 'load') {
-        loadSessions();
-        if (sessions.length > 0) {
-          setSessionManagerMode('load');
-          showSessionManager();
-        }
+      if (command === 'session' || command === 'sessions') {
+        showSessionSelector('select');
         return;
       }
 
       if (command === 'new-session') {
-        saveCurrentSession();
-        handleNewSession();
+        createSession();
+        showChat();
         return;
       }
 
       if (command === 'delete-session') {
-        loadSessions();
         if (sessions.length > 0) {
-          setSessionManagerMode('delete');
-          showSessionManager();
+          showSessionSelector('delete');
         }
         return;
       }
     }
-  }, [sessions.length, loadSessions, showModelSelector, showSessionManager, handleNewSession, saveCurrentSession, setCurrentAgent]);
+  }, [sessions.length, showModelSelector, showSessionSelector, handleNewSession, saveCurrentSession, setCurrentAgent, createSession]);
 
   // Render based on view
   if (view === 'session-selector') {
     return (
       <Box flexDirection="column">
-        <SessionSelector
-          sessions={sessions}
-          onSelect={handleSessionSelect}
-          onNew={handleNewSession}
-          onCancel={handleExit}
-        />
-      </Box>
-    );
-  }
-
-  if (view === 'session-manager') {
-    return (
-      <Box flexDirection="column">
         <SessionManager
           sessions={sessions}
-          mode={sessionManagerMode}
+          mode={sessionManagerMode || 'select'}
           onSelect={handleSessionManagerSelect}
           onDelete={handleSessionDelete}
-          onCancel={() => showChat()}
+          onCancel={cancel}
         />
       </Box>
     );
@@ -166,7 +145,7 @@ function AppContent() {
         <ModelSelector
           currentModelId={`${session.modelProvider}/${session.modelName}`}
           onSelect={handleModelSelect}
-          onCancel={() => showChat()}
+          onCancel={cancel}
         />
       </Box>
     );
@@ -175,6 +154,7 @@ function AppContent() {
   return (
     <Box flexDirection="column">
       <ChatView
+        key={currentSession?.id}
         onSubmit={handleSubmit}
         onExit={handleExit}
       />

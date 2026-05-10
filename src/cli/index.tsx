@@ -4,6 +4,7 @@ import { resolve } from 'path';
 import { program } from 'commander';
 import { render } from 'ink';
 import App from './App.js';
+import { ensureKiwiDir } from '../workspace/sessionManager.js';
 
 // Parse CLI arguments
 program
@@ -14,6 +15,9 @@ program
 program.parse();
 const options = program.opts();
 const projectPath = resolve(options.path);
+
+// Ensure .kiwi directory exists before rendering
+ensureKiwiDir(projectPath);
 
 // Clear terminal before starting
 process.stdout.write('\x1Bc');

@@ -149,6 +149,27 @@ export function validateModel(modelId: string): { valid: boolean; error?: string
   return { valid: true, provider: parsed.provider, modelName: parsed.model };
 }
 
+export async function fetchGeminiModels(apiKey: string): Promise<ModelInfo[]> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}&pageSize=50`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Gemini models: ${response.statusText}`);
+  }
+  const data = await response.json() as {
+    models: Array<{
+      name: string;
+      displayName: string;
+      supportedGenerationMethods: string[];
+    }>;
+  };
+  return data.models
+    .filter(m => m.supportedGenerationMethods.includes('generateContent'))
+    .map(m => ({
+      id: `google/${m.name.replace('models/', '')}`,
+      name: m.displayName,
+    }));
+}
+
 export function getModel(provider: string, modelName: string): LanguageModel {
   const apiKey = getApiKey(provider);
   

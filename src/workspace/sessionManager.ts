@@ -1,31 +1,45 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, unlinkSync } from 'fs';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+  mkdirSync,
+  rmSync,
+} from 'fs';
 import { join } from 'path';
+import { randomBytes } from 'crypto';
 import { UIMessage } from 'ai';
 
+// ─── Directory constants ───────────────────────────────────────────────────
 export const KIWI_DIR = '.kiwi';
 export const SESSIONS_DIR = '.kiwi/sessions';
-export const ACTIVE_SESSION_FILE = '.kiwi/session.json';
+export const SESSIONS_INDEX_FILE = '.kiwi/sessions/sessions.json';
 
+// ─── Types ─────────────────────────────────────────────────────────────────
+
+export interface SessionModel {
+  provider: string;
+  model: string;
+  modelId: string;
+  name: string;
+}
+
+/** Metadata stored in session_[id]/session.json — NO messages */
 export interface PersistedSession {
   id: string;
   created: string;
   lastActive: string;
   projectPath: string;
-  model: {
-    provider: string;
-    model: string;
-    modelId: string;
-    name: string;
-  };
+  model: SessionModel;
   agent: string;
-  messages: UIMessage[];
   messageCount: number;
   metadata?: {
-    tags?: string[];
     description?: string;
+    tags?: string[];
   };
 }
 
+/** Entry stored in sessions.json index */
 export interface SessionInfo {
   id: string;
   created: string;
@@ -34,127 +48,158 @@ export interface SessionInfo {
   description?: string;
 }
 
+/** Top-level sessions.json shape */
+interface SessionIndex {
+  activeSessionId: string | null;
+  sessions: SessionInfo[];
+}
+
+// ─── Path helpers ──────────────────────────────────────────────────────────
+
 function getSessionsDir(projectPath: string): string {
   return join(projectPath, SESSIONS_DIR);
 }
 
-function ensureSessionsDir(projectPath: string): void {
+function getSessionDir(projectPath: string, sessionId: string): string {
+  return join(projectPath, SESSIONS_DIR, `session_${sessionId}`);
+}
+
+function getSessionMetaPath(projectPath: string, sessionId: string): string {
+  return join(getSessionDir(projectPath, sessionId), 'session.json');
+}
+
+function getSessionMessagesPath(projectPath: string, sessionId: string): string {
+  return join(getSessionDir(projectPath, sessionId), 'messages.json');
+}
+
+function getIndexPath(projectPath: string): string {
+  return join(projectPath, SESSIONS_INDEX_FILE);
+}
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────
+
+/** Creates .kiwi/sessions/ if it doesn't exist. Safe to call multiple times. */
+export function ensureKiwiDir(projectPath: string): void {
   const dir = getSessionsDir(projectPath);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
 }
 
+// ─── Session ID ───────────────────────────────────────────────────────────
+
 function generateSessionId(): string {
-  const now = new Date();
-  const date = now.toISOString().split('T')[0].replace(/-/g, '');
-  const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
-  return `session-${date}-${time}`;
+  return randomBytes(4).toString('hex').slice(0, 7);
 }
 
-function getSessionPath(projectPath: string, sessionId: string): string {
-  return join(getSessionsDir(projectPath), `${sessionId}.json`);
-}
+// ─── Index read/write ─────────────────────────────────────────────────────
 
-export function listSessions(projectPath: string): SessionInfo[] {
-  const dir = getSessionsDir(projectPath);
-  if (!existsSync(dir)) {
-    return [];
-  }
-
-  const files = readdirSync(dir)
-    .filter(f => f.endsWith('.json'))
-    .map(f => {
-      const path = join(dir, f);
-      try {
-        const content = readFileSync(path, 'utf-8');
-        const session = JSON.parse(content) as PersistedSession;
-        return {
-          id: session.id,
-          created: session.created,
-          lastActive: session.lastActive,
-          messageCount: session.messageCount,
-          description: session.metadata?.description,
-        };
-      } catch {
-        return null;
-      }
-    })
-    .filter((s): s is NonNullable<typeof s> => s !== null)
-    .sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
-
-  return files;
-}
-
-export function getLastActiveSession(projectPath: string): SessionInfo | null {
-  const sessions = listSessions(projectPath);
-  return sessions.length > 0 ? sessions[0] : null;
-}
-
-export function loadSession(projectPath: string, sessionId: string): PersistedSession | null {
-  const path = getSessionPath(projectPath, sessionId);
+function readIndex(projectPath: string): SessionIndex {
+  const path = getIndexPath(projectPath);
   if (!existsSync(path)) {
-    return null;
+    return { activeSessionId: null, sessions: [] };
   }
-
   try {
-    const content = readFileSync(path, 'utf-8');
-    const session = JSON.parse(content) as PersistedSession;
-    return session;
-  } catch (error) {
-    console.warn('Failed to load session:', error);
-    return null;
+    return JSON.parse(readFileSync(path, 'utf-8')) as SessionIndex;
+  } catch {
+    return { activeSessionId: null, sessions: [] };
   }
 }
 
-export function saveSession(projectPath: string, session: PersistedSession): void {
-  ensureSessionsDir(projectPath);
-  const path = getSessionPath(projectPath, session.id);
-  
-  const updatedSession: PersistedSession = {
-    ...session,
-    lastActive: new Date().toISOString(),
-    messageCount: session.messages.length,
+function writeIndex(projectPath: string, index: SessionIndex): void {
+  ensureKiwiDir(projectPath);
+  try {
+    writeFileSync(getIndexPath(projectPath), JSON.stringify(index, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn('Failed to write sessions index:', error);
+  }
+}
+
+function upsertIndexEntry(projectPath: string, meta: PersistedSession): void {
+  const index = readIndex(projectPath);
+  const entry: SessionInfo = {
+    id: meta.id,
+    created: meta.created,
+    lastActive: meta.lastActive,
+    messageCount: meta.messageCount,
+    description: meta.metadata?.description,
   };
-
-  try {
-    writeFileSync(path, JSON.stringify(updatedSession, null, 2), 'utf-8');
-  } catch (error) {
-    console.warn('Failed to save session:', error);
+  const existing = index.sessions.findIndex(s => s.id === meta.id);
+  if (existing >= 0) {
+    index.sessions[existing] = entry;
+  } else {
+    index.sessions.push(entry);
   }
+  // Keep sorted by lastActive desc
+  index.sessions.sort(
+    (a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime(),
+  );
+  writeIndex(projectPath, index);
 }
+
+// ─── Session CRUD ─────────────────────────────────────────────────────────
 
 export function createSession(
   projectPath: string,
-  model: { provider: string; model: string; modelId: string; name: string },
+  model: SessionModel,
   agent: string = 'coder',
-  description?: string
+  description?: string,
 ): PersistedSession {
+  ensureKiwiDir(projectPath);
   const now = new Date().toISOString();
-  const session: PersistedSession = {
-    id: generateSessionId(),
+  const id = generateSessionId();
+
+  const meta: PersistedSession = {
+    id,
     created: now,
     lastActive: now,
     projectPath,
     model,
     agent,
-    messages: [],
     messageCount: 0,
     metadata: description ? { description } : undefined,
   };
 
-  saveSession(projectPath, session);
-  return session;
+  const dir = getSessionDir(projectPath, id);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(getSessionMetaPath(projectPath, id), JSON.stringify(meta, null, 2), 'utf-8');
+  writeFileSync(getSessionMessagesPath(projectPath, id), '[]', 'utf-8');
+
+  upsertIndexEntry(projectPath, meta);
+  return meta;
+}
+
+export function loadSession(projectPath: string, sessionId: string): PersistedSession | null {
+  const path = getSessionMetaPath(projectPath, sessionId);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8')) as PersistedSession;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSession(projectPath: string, meta: PersistedSession): void {
+  const dir = getSessionDir(projectPath, meta.id);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const updated: PersistedSession = { ...meta, lastActive: new Date().toISOString() };
+  try {
+    writeFileSync(getSessionMetaPath(projectPath, meta.id), JSON.stringify(updated, null, 2), 'utf-8');
+    upsertIndexEntry(projectPath, updated);
+  } catch (error) {
+    console.warn('Failed to save session:', error);
+  }
 }
 
 export function deleteSession(projectPath: string, sessionId: string): boolean {
-  const path = getSessionPath(projectPath, sessionId);
-  if (!existsSync(path)) {
-    return false;
-  }
-
+  const dir = getSessionDir(projectPath, sessionId);
+  if (!existsSync(dir)) return false;
   try {
-    unlinkSync(path);
+    rmSync(dir, { recursive: true, force: true });
+    const index = readIndex(projectPath);
+    index.sessions = index.sessions.filter(s => s.id !== sessionId);
+    if (index.activeSessionId === sessionId) index.activeSessionId = null;
+    writeIndex(projectPath, index);
     return true;
   } catch (error) {
     console.warn('Failed to delete session:', error);
@@ -162,63 +207,73 @@ export function deleteSession(projectPath: string, sessionId: string): boolean {
   }
 }
 
-export function cleanupOldSessions(projectPath: string, maxSessions: number = 100): void {
-  const sessions = listSessions(projectPath);
-  if (sessions.length <= maxSessions) {
-    return;
-  }
+// ─── Messages ─────────────────────────────────────────────────────────────
 
-  // Keep most recent maxSessions
-  const toDelete = sessions.slice(maxSessions);
-  for (const session of toDelete) {
-    deleteSession(projectPath, session.id);
+export function loadMessages(projectPath: string, sessionId: string): UIMessage[] {
+  const path = getSessionMessagesPath(projectPath, sessionId);
+  if (!existsSync(path)) return [];
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8')) as UIMessage[];
+  } catch {
+    return [];
   }
 }
 
-// Active session management (replaces .kiwi/config)
-function getActiveSessionPath(projectPath: string): string {
-  return join(projectPath, ACTIVE_SESSION_FILE);
+export function saveMessages(
+  projectPath: string,
+  sessionId: string,
+  messages: UIMessage[],
+): void {
+  const path = getSessionMessagesPath(projectPath, sessionId);
+  try {
+    writeFileSync(path, JSON.stringify(messages, null, 2), 'utf-8');
+    // Update messageCount in meta + index
+    const meta = loadSession(projectPath, sessionId);
+    if (meta) {
+      saveSession(projectPath, { ...meta, messageCount: messages.length });
+    }
+  } catch (error) {
+    console.warn('Failed to save messages:', error);
+  }
 }
 
-function ensureKiwiDir(projectPath: string): void {
-  const dir = join(projectPath, KIWI_DIR);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
+// ─── Active session ────────────────────────────────────────────────────────
+
+export function getActiveSessionId(projectPath: string): string | null {
+  return readIndex(projectPath).activeSessionId;
+}
+
+export function setActiveSession(projectPath: string, sessionId: string): void {
+  const index = readIndex(projectPath);
+  index.activeSessionId = sessionId;
+  writeIndex(projectPath, index);
 }
 
 export function loadActiveSession(projectPath: string): PersistedSession | null {
-  const path = getActiveSessionPath(projectPath);
-  if (!existsSync(path)) {
-    return null;
-  }
-
-  try {
-    const content = readFileSync(path, 'utf-8');
-    const session = JSON.parse(content) as PersistedSession;
-    return session;
-  } catch (error) {
-    console.warn('Failed to load active session:', error);
-    return null;
-  }
+  const id = getActiveSessionId(projectPath);
+  if (!id) return null;
+  return loadSession(projectPath, id);
 }
 
-export function saveActiveSession(projectPath: string, session: PersistedSession): void {
-  ensureKiwiDir(projectPath);
-  const path = getActiveSessionPath(projectPath);
-  
-  const updatedSession: PersistedSession = {
-    ...session,
-    lastActive: new Date().toISOString(),
-    messageCount: session.messages.length,
-  };
+// ─── List ─────────────────────────────────────────────────────────────────
 
-  try {
-    writeFileSync(path, JSON.stringify(updatedSession, null, 2), 'utf-8');
-  } catch (error) {
-    console.warn('Failed to save active session:', error);
-  }
+export function listSessions(projectPath: string): SessionInfo[] {
+  const index = readIndex(projectPath);
+  // Re-sync with filesystem in case dirs were added/removed manually
+  const sessionsDir = getSessionsDir(projectPath);
+  if (!existsSync(sessionsDir)) return [];
+
+  const dirNames = readdirSync(sessionsDir, { withFileTypes: true })
+    .filter(d => d.isDirectory() && d.name.startsWith('session_'))
+    .map(d => d.name.replace('session_', ''));
+
+  // Filter index to only existing dirs, then sort by lastActive desc
+  return index.sessions
+    .filter(s => dirNames.includes(s.id))
+    .sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
 }
+
+// ─── Update model ──────────────────────────────────────────────────────────
 
 export function updateSessionModel(
   projectPath: string,
@@ -226,26 +281,19 @@ export function updateSessionModel(
   provider: string,
   model: string,
   modelId: string,
-  name: string
+  name: string,
 ): PersistedSession {
-  const session = loadSession(projectPath, sessionId);
-  if (!session) {
-    throw new Error(`Session ${sessionId} not found`);
-  }
-
-  const updated: PersistedSession = {
-    ...session,
-    model: { provider, model, modelId, name },
-    lastActive: new Date().toISOString(),
-  };
-
+  const meta = loadSession(projectPath, sessionId);
+  if (!meta) throw new Error(`Session ${sessionId} not found`);
+  const updated: PersistedSession = { ...meta, model: { provider, model, modelId, name } };
   saveSession(projectPath, updated);
-  
-  // Also update active session if it's the same
-  const active = loadActiveSession(projectPath);
-  if (active && active.id === sessionId) {
-    saveActiveSession(projectPath, updated);
-  }
-
   return updated;
+}
+
+// ─── Convenience: save active session shortcut ────────────────────────────
+
+/** @deprecated Use saveSession + setActiveSession separately */
+export function saveActiveSession(projectPath: string, session: PersistedSession): void {
+  saveSession(projectPath, session);
+  setActiveSession(projectPath, session.id);
 }
