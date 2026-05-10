@@ -144,8 +144,10 @@ export function ModelSelector({ currentModelId, onSelect, onCancel }: ModelSelec
       const selected = flatModels[selectedIndex];
       if (selected) {
         const parsed = selected.id.split('/');
-        if (parsed.length === 2) {
-          onSelect(parsed[0], parsed[1], selected.id);
+        if (parsed.length >= 2) {
+          const provider = parsed[0];
+          const model = parsed.slice(1).join('/');
+          onSelect(provider, model, selected.id);
         }
       }
     } else if (key.escape || (key.ctrl && input === 'c')) {
