@@ -3,8 +3,14 @@ import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import { colors } from '../theme/colors.js';
 import { useSessionContext } from '../context/SessionContext.js';
+import type { TokenCounter } from '../hooks/useTokenCounter.js';
+import { formatTokens } from '../hooks/useTokenCounter.js';
 
-export function StatusBar() {
+interface StatusBarProps {
+  tokenCounter?: TokenCounter;
+}
+
+export function StatusBar({ tokenCounter }: StatusBarProps) {
   const { session, currentAgent, modelDisplayName } = useSessionContext();
   const { status, modelProvider, modelName } = session;
 
@@ -29,7 +35,6 @@ export function StatusBar() {
   }, [status]);
 
   const isLoading = useMemo(() => status === 'thinking' || status === 'acting', [status]);
-  // Format model display: use display name if available, otherwise fall back to provider/model
   const modelDisplay = useMemo(() => modelDisplayName || `${modelProvider}/${modelName}`, [modelDisplayName, modelProvider, modelName]);
 
   return (
@@ -43,9 +48,20 @@ export function StatusBar() {
             Mode: <Text color={colors.highlight}>/{currentAgent}</Text>
           </Text>
         </Box>
-        <Box gap={1}>
-          <Text color={colors.system}>Model:</Text>
-          <Text color={colors.secondary}>{modelDisplay}</Text>
+        <Box gap={2}>
+          {tokenCounter && (
+            <Box gap={1}>
+              <Text color={colors.system}>CTX:</Text>
+              <Text color={colors.info}>{formatTokens(tokenCounter.orchestrator.totalTokens)}</Text>
+              <Text color={colors.system}>|</Text>
+              <Text color={colors.system}>Total:</Text>
+              <Text color={colors.secondary}>{formatTokens(tokenCounter.total.totalTokens)}</Text>
+            </Box>
+          )}
+          <Box gap={1}>
+            <Text color={colors.system}>Model:</Text>
+            <Text color={colors.secondary}>{modelDisplay}</Text>
+          </Box>
         </Box>
       </Box>
     </Box>

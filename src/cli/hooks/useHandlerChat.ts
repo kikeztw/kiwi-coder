@@ -7,6 +7,7 @@ import { PersistedSession, loadMessages, saveMessages } from '@/workspace/sessio
 import { useCallback, useMemo } from 'react';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import type { UIMessage } from 'ai';
+import { useTokenCounter, type TokenCounter } from './useTokenCounter.js';
 
 export type CoderAgentUIMessage = InferAgentUIMessage<ReturnType<typeof generateCoderAgent>>;
 export type PlanAgentUIMessage = InferAgentUIMessage<ReturnType<typeof generatePlannerAgent>>;
@@ -17,23 +18,30 @@ export type UseHandlerChatReturn = {
   sendMessage: (message: { text: string }) => void;
   addToolApprovalResponse: (response: { id: string; approved: boolean; reason?: string }) => void;
   status: string;
+  tokenCounter: TokenCounter;
 };
 
 export const useHandlerChat = (): UseHandlerChatReturn => {
   const { currentSession, currentAgent, projectPath } = useSessionContext();
+  const { tokenCounter, addOrchestratorUsage, addSubAgentUsage } = useTokenCounter();
 
   // Return early if no session is available - return a disabled chat
   if (!currentSession) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return useChat({ id: 'no-session', messages: [] }) as any;
+    return { ...(useChat({ id: 'no-session', messages: [] }) as any), tokenCounter };
   }
 
   const coderAgent = useMemo(
-    () => generateCoderAgent(currentSession as PersistedSession),
+    () => generateCoderAgent(currentSession as PersistedSession, {
+      onOrchestratorStep: addOrchestratorUsage,
+    }),
     [currentSession?.id],
   );
   const planAgent = useMemo(
-    () => generatePlannerAgent(currentSession as PersistedSession),
+    () => generatePlannerAgent(currentSession as PersistedSession, {
+      onOrchestratorStep: addOrchestratorUsage,
+      onSubAgentUsage: addSubAgentUsage,
+    }),
     [currentSession?.id],
   );
 
@@ -71,5 +79,5 @@ export const useHandlerChat = (): UseHandlerChatReturn => {
   });
 
   const chat = currentAgent === 'coder' ? coderAgentChat : planAgentChat;
-  return chat as unknown as UseHandlerChatReturn;
+  return { ...(chat as unknown as UseHandlerChatReturn), tokenCounter };
 };

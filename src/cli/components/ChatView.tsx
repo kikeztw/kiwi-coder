@@ -21,7 +21,7 @@ function ChatViewInternal({
 }: ChatViewProps) {
   // const { currentSession, currentAgent } = useSessionContext();
   const [input, setInput] = useState('');
-  const { messages, sendMessage, addToolApprovalResponse, status } = useHandlerChat();
+  const { messages, sendMessage, addToolApprovalResponse, status, tokenCounter } = useHandlerChat();
  
   const handleInputSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'exit' || value.toLowerCase() === 'quit') {
@@ -79,7 +79,7 @@ function ChatViewInternal({
           </Box>
         )}
       </Box>
-      <StatusBar />
+      <StatusBar tokenCounter={tokenCounter} />
       <InputBox input={input} />
     </Box>
   );

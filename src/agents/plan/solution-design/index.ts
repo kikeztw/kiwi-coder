@@ -1,9 +1,10 @@
 import { ToolLoopAgent, tool, LanguageModel } from 'ai';
 import { z } from 'zod';
-import { writeFile, editFile, createDirectory, readTextFile} from '../../../../tools/filesystem.js';
+import { writeFile, editFile, createDirectory, readTextFile} from '../../../tools/filesystem.js';
 import { SOLUTION_DESIGN_PROMPT, SOLUTION_DESIGN_TOOL_DESCRIPTION } from './prompt.js';
+import type { TokenUsage } from '../../../cli/hooks/useTokenCounter.js';
 
-export const generateSolutionDesignAgent = (model: LanguageModel, projectPath: string) => {
+export const generateSolutionDesignAgent = (model: LanguageModel, projectPath: string, onUsage?: (usage: TokenUsage) => void) => {
   const agent = new ToolLoopAgent({
     model,
     tools: {
@@ -28,6 +29,13 @@ export const generateSolutionDesignAgent = (model: LanguageModel, projectPath: s
         prompt: `${comprehensionDocument}\n\n${contextMap}`,
         abortSignal,
       });
+      if (onUsage && result.usage) {
+        onUsage({
+          inputTokens: result.usage.inputTokens ?? 0,
+          outputTokens: result.usage.outputTokens ?? 0,
+          totalTokens: result.usage.totalTokens ?? 0,
+        });
+      }
       return result.text;
     }
   });
