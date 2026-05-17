@@ -208,7 +208,7 @@ export function ModelSelector({ currentModelId, onSelect, onCancel }: ModelSelec
       )}
 
       {/* Model list grouped by provider */}
-      <Box flexDirection="column" height={SCROLL_VIEW_HEIGHT}>
+      <Box flexDirection="column">
         <ScrollView ref={scrollRef} height={SCROLL_VIEW_HEIGHT}>
           {Object.entries(groupedModels).map(([providerKey, models]) => (
             <Box key={providerKey} flexDirection="column" marginBottom={1}>

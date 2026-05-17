@@ -9,7 +9,7 @@ export default defineConfig({
   clean: true,
   dts: true,
   outDir: 'dist',
-  external: ['react', 'ink', 'ink-spinner', 'ink-text-input'],
+  bundle: true,
   esbuildOptions: (options) => {
     options.jsx = 'transform';
     options.jsxFactory = 'React.createElement';

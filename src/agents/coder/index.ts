@@ -1,7 +1,6 @@
 import { ToolLoopAgent, stepCountIs } from 'ai';
 import { getModel } from '../../providers/index.js';
-import { filesystemTools } from '@/tools/filesystem.js';
-import { commandTools } from '@/tools/command.js';
+import { filesystemTools, terminalTools, gitTools } from '@/tools/index.js';
 import { PersistedSession } from '@/workspace/sessionManager.js';
 import { CODER_PROMPT } from './prompt.js';
 import type { TokenUsage } from '../../cli/hooks/useTokenCounter.js';
@@ -16,7 +15,7 @@ export const generateCoderAgent = (session: PersistedSession, callbacks?: CoderA
     model: model,
     stopWhen: stepCountIs(50),
     instructions: CODER_PROMPT,
-    tools: { ...filesystemTools, ...commandTools },
+    tools: { ...filesystemTools, ...terminalTools, ...gitTools },
     experimental_context: { projectPath: session.projectPath },
     onStepFinish: callbacks?.onOrchestratorStep ? ({ usage }) => {
       callbacks.onOrchestratorStep!({

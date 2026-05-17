@@ -30,7 +30,7 @@ cd agent-coder
 ### 2. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Configure environment variables
@@ -46,13 +46,13 @@ OPENAI_API_KEY=your-api-key-here
 ### 4. Build the project
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ### 5. Link the CLI globally
 
 ```bash
-npm link
+pnpm link --global
 ```
 
 ## Usage
@@ -85,16 +85,16 @@ coder chat
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run in watch mode
-npm run dev
+pnpm dev
 
 # Type checking
-npm run typecheck
+pnpm typecheck
 
 # Run tests
-npm test
+pnpm test
 ```
 
 ## Project Structure
