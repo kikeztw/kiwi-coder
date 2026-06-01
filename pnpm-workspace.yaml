@@ -1,0 +1,2 @@
+patchedDependencies:
+  '@orchetron/storm': patches/@orchetron__storm.patch

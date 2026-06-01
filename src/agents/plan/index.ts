@@ -1,11 +1,10 @@
 import { ToolLoopAgent } from 'ai';
-import { PersistedSession } from '@/workspace/sessionManager.js';
 
 import { getModel } from '../../providers/index.js';
 import { writeFile, createDirectory } from '../../tools/filesystem/index.js';
 import { generateCodeExplorerSubagent } from './code-explorer/index.js';
 import { PLANNER_PROMPT } from './prompt.js';
-import type { TokenUsage } from '../../cli/hooks/useTokenCounter.js';
+import type { AgentRuntimeSession, TokenUsage } from '../../application/index.js';
 
 export type PlannerAgentCallbacks = {
   onSubAgentUsage?: (usage: TokenUsage) => void;
@@ -13,7 +12,7 @@ export type PlannerAgentCallbacks = {
 };
 
 export const generatePlannerAgent = (
-  session: PersistedSession,
+  session: AgentRuntimeSession,
   callbacks?: PlannerAgentCallbacks,
 ) => {
   const model = getModel(session.model.provider, session.model.name);

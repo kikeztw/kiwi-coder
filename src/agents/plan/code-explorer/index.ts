@@ -8,7 +8,7 @@ import {
 } from '../../../tools/filesystem/index.js';
 import { CODE_EXPLORER_PROMPT, CODE_EXPLORER_TOOL_DESCRIPTION } from './prompt.js';
 import { ContextSummarySchema, type ContextSummary } from '../schema.js';
-import type { TokenUsage } from '../../../cli/hooks/useTokenCounter.js';
+import type { TokenUsage } from '../../../application/index.js';
 
 const EMPTY_CONTEXT: ContextSummary = {
   relatedModules: [],

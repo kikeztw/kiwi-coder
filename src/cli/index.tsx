@@ -2,9 +2,9 @@
 import 'dotenv/config';
 import { resolve } from 'path';
 import { program } from 'commander';
-import { render } from 'ink';
-import App from './App.js';
-import { ensureKiwiDir } from '../workspace/sessionManager.js';
+import { render } from '@orchetron/storm';
+import App from '../presentation/terminal/App.js';
+import { preloadModelCache } from '../presentation/terminal/services/modelsCache.js';
 
 // Parse CLI arguments
 program
@@ -16,10 +16,20 @@ program.parse();
 const options = program.opts();
 const projectPath = resolve(options.path);
 
-// Ensure .kiwi directory exists before rendering
-ensureKiwiDir(projectPath);
+// Kick off background fetches for model lists so /model is responsive.
+preloadModelCache();
 
-// Clear terminal before starting
-process.stdout.write('\x1Bc');
+async function main() {
+  try {
+    const app = render(<App projectPath={projectPath} />);
+    await app.waitUntilExit();
+  } catch (error: unknown) {
+    console.error('Error rendering:', error);
+    if (error instanceof Error) {
+      console.error(error.stack);
+    }
+    process.exit(1);
+  }
+}
 
-render(<App projectPath={projectPath} />);
+main();

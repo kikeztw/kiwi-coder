@@ -1,15 +1,14 @@
 import { ToolLoopAgent, stepCountIs } from 'ai';
 import { getModel } from '../../providers/index.js';
 import { filesystemTools, terminalTools, gitTools } from '@/tools/index.js';
-import { PersistedSession } from '@/workspace/sessionManager.js';
 import { CODER_PROMPT } from './prompt.js';
-import type { TokenUsage } from '../../cli/hooks/useTokenCounter.js';
+import type { AgentRuntimeSession, TokenUsage } from '../../application/index.js';
 
 export type CoderAgentCallbacks = {
   onOrchestratorStep?: (usage: TokenUsage) => void;
 };
 
-export const generateCoderAgent = (session: PersistedSession, callbacks?: CoderAgentCallbacks) => {
+export const generateCoderAgent = (session: AgentRuntimeSession, callbacks?: CoderAgentCallbacks) => {
   const model = getModel(session.model.provider, session.model.name);
   return new ToolLoopAgent({
     model: model,

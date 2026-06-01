@@ -1,158 +1,78 @@
-# Agent Coder 🤖
+# Kiwi CLI
 
-A production-ready AI coding agent with interactive terminal interface, built with Vercel AI SDK and TypeScript.
-
-## Features
-
-- 🎨 Modern terminal interface with chalk and ora
-- 💬 Interactive conversation with the agent
-- 🔧 Tool execution with confirmation for dangerous operations
-- 📝 Type-safe tool definitions with Zod
-- 🎯 Streaming responses from LLM providers
-- 🔒 Sandboxed workspace for safe file operations
-- ⚙️ Configurable via environment variables
-- 🧪 TypeScript with full type safety
+AI coding assistant with an interactive terminal UI, built with the Vercel AI SDK and TypeScript.
 
 ## Requirements
 
 - Node.js 20+
-- OpenAI API Key or Anthropic API Key
+- `pnpm` (required package manager)
+- At least one provider API key (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
 
 ## Quick Start
 
-### 1. Clone the repository
-
-```bash
-git clone git@github.com:kikeztw/agent-coder.git
-cd agent-coder
-```
-
-### 2. Install dependencies
-
 ```bash
 pnpm install
-```
-
-### 3. Configure environment variables
-
-Create a `.env` file in the project root:
-
-```bash
-OPENAI_API_KEY=your-api-key-here
-# Or if using Anthropic:
-# ANTHROPIC_API_KEY=your-api-key-here
-```
-
-### 4. Build the project
-
-```bash
 pnpm build
-```
-
-### 5. Link the CLI globally
-
-```bash
 pnpm link --global
 ```
 
-## Usage
-
-Once linked, you can run the agent from any directory:
+Create `.env` in the project root:
 
 ```bash
-coder chat
+OPENAI_API_KEY=your-key
+MODEL_PROVIDER=openai
+MODEL_NAME=gpt-4o
 ```
 
-### Available Commands
+## Run
 
-- `coder chat` - Start interactive session
-- `coder run "your message"` - Run single query
-- `exit` or `quit` - Exit interactive session
-
-### Usage Examples
-
-```
-👤 You: Create a TypeScript file that calculates Fibonacci numbers
-
-👤 You: Explain what the main.ts file does
-
-👤 You: Refactor the workflow function to improve readability
-```
-
-## Development
-
-### Development Setup
+After linking globally:
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Run in watch mode
-pnpm dev
-
-# Type checking
-pnpm typecheck
-
-# Run tests
-pnpm test
+kiwi --path /absolute/or/relative/project/path
 ```
 
-## Project Structure
+Or without linking:
 
-```
-agent-coder/
-├── src/
-│   ├── core/           # Core agent logic
-│   │   ├── state.ts    # Agent state types
-│   │   └── workflow.ts # ReAct workflow
-│   ├── nodes/          # Workflow nodes
-│   │   ├── thought.ts  # LLM reasoning
-│   │   ├── action.ts   # Tool execution
-│   │   └── review.ts   # Human confirmation
-│   ├── tools/          # Tool implementations
-│   │   ├── registry.ts # Tool registration
-│   │   ├── file-tools.ts
-│   │   └── execution-tools.ts
-│   ├── providers/      # LLM providers
-│   │   └── llm.ts
-│   ├── config/         # Configuration
-│   │   └── settings.ts
-│   ├── cli/            # CLI interface
-│   │   └── index.ts
-│   └── utils/          # Utilities
-│       └── security.ts
-├── tests/              # Test suite
-├── workspace/          # Agent sandbox directory
-├── package.json
-├── tsconfig.json
-└── README.md
+```bash
+pnpm start -- --path .
 ```
 
-## Available Tools
+Inside chat, supported slash commands are:
 
-The agent has access to the following tools:
+- `/coder`
+- `/plan`
+- `/model`
+- `/sessions`
+- `/new-session`
+- `/delete-session`
 
-- **read_file**: Read file contents
-- **write_file**: Create or overwrite files
-- **delete_file**: Delete files (requires confirmation)
-- **list_directory**: List directory contents
-- **run_command**: Execute shell commands (requires confirmation)
+## Scripts
 
-All tools operate within the sandboxed `workspace/` directory for security.
+- `pnpm dev`
+- `pnpm build`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm test`
+- `pnpm test --run`
 
-## Configuration
+## Architecture
 
-Configuration is managed through environment variables:
+The codebase is organized in layers:
 
-- **Model Configuration**: `MODEL_PROVIDER`, `MODEL_NAME`, `TEMPERATURE`
-- **API Keys**: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`
-- **Security**: `DANGEROUS_TOOLS`, `MAX_EXECUTION_TIME`
-- **Workspace**: `WORKSPACE_PATH`
+- `src/presentation/terminal` - terminal UI and navigation
+- `src/presentation/shared` - UI contracts and shared presentation hooks
+- `src/presentation/web` - base web routing/components scaffold
+- `src/presentation/electron` - base electron main/renderer scaffold
+- `src/application` - use cases and application services
+- `src/domain` - entities, value objects, repository contracts, events
+- `src/infrastructure` - filesystem repositories, event bus, and composition
+- `src/plugins` - plugin interfaces, registry, and built-in UI plugins
+- `src/tools` - filesystem/terminal/git tools used by agents
+- `src/agents` - `coder` and `plan` agent factories
+
+Detailed design notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file
-
-## Author
-
-**kikeztw** - [GitHub](https://github.com/kikeztw)
+MIT - see [LICENSE](LICENSE).

@@ -1,0 +1,142 @@
+diff --git a/dist/components/core/SelectInput.js b/dist/components/core/SelectInput.js
+index 936b5e7e98aaaf4c51b69445344ff9f49d324b37..e53267d8b9b0dba6bfca6b28b2b4550e2b9ccb4e 100644
+--- a/dist/components/core/SelectInput.js
++++ b/dist/components/core/SelectInput.js
+@@ -1,4 +1,4 @@
+-import React, { useCallback, useRef } from "react";
++import React, { useCallback, useState, useRef } from "react";
+ import { useInput } from "../../hooks/useInput.js";
+ import { useTui } from "../../context/TuiContext.js";
+ import { useColors } from "../../hooks/useColors.js";
+@@ -14,8 +14,9 @@ export const SelectInput = React.memo(function SelectInput(rawProps) {
+     const props = usePluginProps("SelectInput", rawProps);
+     const { items, onSelect, onHighlight, initialIndex = 0, isFocused = true, color, maxVisible, } = props;
+     const { requestRender } = useTui();
+-    const highlightRef = useRef(initialIndex);
+-    const filterRef = useRef("");
++    // FIX: useState instead of useRef so React reconciles on change
++    const [highlightIndex, setHighlightIndex] = useState(initialIndex);
++    const [filterText, setFilterText] = useState("");
+     // Refs for latest props
+     const itemsRef = useRef(items);
+     itemsRef.current = items;
+@@ -23,14 +24,13 @@ export const SelectInput = React.memo(function SelectInput(rawProps) {
+     onSelectRef.current = onSelect;
+     const onHighlightRef = useRef(onHighlight);
+     onHighlightRef.current = onHighlight;
+-    const filteredItems = filterRef.current
+-        ? items.filter((item) => item.label.toLowerCase().includes(filterRef.current.toLowerCase()))
++    const filteredItems = filterText
++        ? items.filter((item) => item.label.toLowerCase().includes(filterText.toLowerCase()))
+         : items;
+     // Clamp highlight
+-    if (highlightRef.current >= filteredItems.length) {
+-        highlightRef.current = Math.max(0, filteredItems.length - 1);
+-    }
+-    const effectiveIndex = filteredItems.length === 0 ? 0 : highlightRef.current;
++    const effectiveIndex = highlightIndex >= filteredItems.length
++        ? Math.max(0, filteredItems.length - 1)
++        : (filteredItems.length === 0 ? 0 : highlightIndex);
+     // Notify onHighlight — track previous index to detect changes
+     const prevIndexRef = useRef(effectiveIndex);
+     if (onHighlight && effectiveIndex !== prevIndexRef.current) {
+@@ -45,19 +45,17 @@ export const SelectInput = React.memo(function SelectInput(rawProps) {
+         if (allItems.length === 0)
+             return;
+         const getFiltered = () => {
+-            if (!filterRef.current)
++            if (!filterText)
+                 return allItems;
+-            const lower = filterRef.current.toLowerCase();
++            const lower = filterText.toLowerCase();
+             return allItems.filter((item) => item.label.toLowerCase().includes(lower));
+         };
+         if (event.key === "up") {
+             const filtered = getFiltered();
+             if (filtered.length === 0)
+                 return;
+-            highlightRef.current =
+-                highlightRef.current > 0 ? highlightRef.current - 1 : filtered.length - 1;
+-            requestRender();
+-            const item = filtered[highlightRef.current];
++            setHighlightIndex(prev => prev > 0 ? prev - 1 : filtered.length - 1);
++            const item = filtered[highlightIndex > 0 ? highlightIndex - 1 : filtered.length - 1];
+             if (item)
+                 onHighlightRef.current?.(item);
+         }
+@@ -65,40 +63,35 @@ export const SelectInput = React.memo(function SelectInput(rawProps) {
+             const filtered = getFiltered();
+             if (filtered.length === 0)
+                 return;
+-            highlightRef.current =
+-                highlightRef.current < filtered.length - 1 ? highlightRef.current + 1 : 0;
+-            requestRender();
+-            const item = filtered[highlightRef.current];
++            setHighlightIndex(prev => prev < filtered.length - 1 ? prev + 1 : 0);
++            const item = filtered[highlightIndex < filtered.length - 1 ? highlightIndex + 1 : 0];
+             if (item)
+                 onHighlightRef.current?.(item);
+         }
+         else if (event.key === "return") {
+             const filtered = getFiltered();
+-            const item = filtered[highlightRef.current];
++            const item = filtered[effectiveIndex];
+             if (item) {
+                 onSelectRef.current(item);
+             }
+         }
+         else if (event.key === "escape") {
+-            if (filterRef.current.length > 0) {
+-                filterRef.current = "";
+-                highlightRef.current = 0;
+-                requestRender();
++            if (filterText.length > 0) {
++                setFilterText("");
++                setHighlightIndex(0);
+             }
+         }
+         else if (event.key === "backspace") {
+-            if (filterRef.current.length > 0) {
+-                filterRef.current = filterRef.current.slice(0, -1);
+-                highlightRef.current = 0;
+-                requestRender();
++            if (filterText.length > 0) {
++                setFilterText(prev => prev.slice(0, -1));
++                setHighlightIndex(0);
+             }
+         }
+         else if (event.char && event.char.length === 1 && !event.ctrl && !event.meta) {
+-            filterRef.current += event.char;
+-            highlightRef.current = 0;
+-            requestRender();
++            setFilterText(prev => prev + event.char);
++            setHighlightIndex(0);
+         }
+-    }, [requestRender]);
++    }, [highlightIndex, filterText, effectiveIndex]);
+     useInput(handleInput, { isActive: isFocused });
+     const outerBoxProps = {
+         flexDirection: "column",
+@@ -112,8 +105,8 @@ export const SelectInput = React.memo(function SelectInput(rawProps) {
+         return React.createElement("tui-text", { color: colors.text.dim, dim: true }, "No options");
+     }
+     const rowChildren = [];
+-    if (filterRef.current) {
+-        rowChildren.push(React.createElement("tui-box", { key: "__filter", flexDirection: "row" }, React.createElement("tui-text", { color: colors.text.dim }, "Filter: "), React.createElement("tui-text", { color: colors.text.primary }, filterRef.current), React.createElement("tui-text", { color: colors.text.dim, dim: true }, ` (${filteredItems.length} of ${items.length})`)));
++    if (filterText) {
++        rowChildren.push(React.createElement("tui-box", { key: "__filter", flexDirection: "row" }, React.createElement("tui-text", { color: colors.text.dim }, "Filter: "), React.createElement("tui-text", { color: colors.text.primary }, filterText), React.createElement("tui-text", { color: colors.text.dim, dim: true }, ` (${filteredItems.length} of ${items.length})`)));
+     }
+     // No matches
+     if (filteredItems.length === 0) {
+@@ -132,9 +125,9 @@ export const SelectInput = React.memo(function SelectInput(rawProps) {
+             rowChildren.push(React.createElement("tui-box", { key: item.value, flexDirection: "row" }, props.renderItem(item, { isHighlighted, index: globalIndex })));
+         }
+         else {
+-            rowChildren.push(React.createElement("tui-box", { key: item.value, flexDirection: "row" }, 
++            rowChildren.push(React.createElement("tui-box", { key: item.value, flexDirection: "row" },
+             // Indicator
+-            React.createElement("tui-text", { color: indicatorColor }, isHighlighted ? `${personality.interaction.selectionChar} ` : `${INDICATOR_SPACE}${INDICATOR_SPACE}`), 
++            React.createElement("tui-text", { color: indicatorColor }, isHighlighted ? `${personality.interaction.selectionChar} ` : `${INDICATOR_SPACE}${INDICATOR_SPACE}`),
+             // Label
+             React.createElement("tui-text", isHighlighted ? { bold: true } : {}, item.label)));
+         }
