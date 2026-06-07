@@ -1,1 +1,1 @@
-export { SessionProvider, useSessionContext, type Session } from './SessionContext.js';
+export { SessionProvider, useSessionContext, type AgentMode, type Session } from './SessionContext.js';

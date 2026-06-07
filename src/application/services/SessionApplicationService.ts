@@ -6,6 +6,7 @@ import { SessionId } from '../../domain/value-objects/SessionId.js';
 import { sessionToDTO } from '../mappers/sessionMapper.js';
 import type { IEventBus } from '../ports/IEventBus.js';
 import { ChangeModel } from '../use-cases/ChangeModel.js';
+import { ChangeAgent } from '../use-cases/ChangeAgent.js';
 import { DeleteSession } from '../use-cases/DeleteSession.js';
 import { StartSession } from '../use-cases/StartSession.js';
 
@@ -23,6 +24,7 @@ export type InitializeSessionResult = {
 export class SessionApplicationService {
   private readonly startSession: StartSession;
   private readonly changeModel: ChangeModel;
+  private readonly changeAgent: ChangeAgent;
   private readonly deleteSession: DeleteSession;
 
   constructor(
@@ -31,6 +33,7 @@ export class SessionApplicationService {
   ) {
     this.startSession = new StartSession(sessions, eventBus);
     this.changeModel = new ChangeModel(sessions, eventBus);
+    this.changeAgent = new ChangeAgent(sessions, eventBus);
     this.deleteSession = new DeleteSession(sessions, eventBus);
   }
 
@@ -105,6 +108,13 @@ export class SessionApplicationService {
     model: ModelDTO;
   }): Promise<SessionDTO> {
     return this.changeModel.execute(input);
+  }
+
+  async changeSessionAgent(input: {
+    sessionId: string;
+    agent: string;
+  }): Promise<SessionDTO> {
+    return this.changeAgent.execute(input);
   }
 
   async save(session: SessionDTO): Promise<void> {

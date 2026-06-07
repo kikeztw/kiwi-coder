@@ -3,4 +3,4 @@ export {
   useSessionContext,
   type AgentMode,
   type Session,
-} from '../../shared/session/index.js';
+} from './SessionContext.js';

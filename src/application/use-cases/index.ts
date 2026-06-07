@@ -1,3 +1,4 @@
+export { ChangeAgent, type ChangeAgentInput } from './ChangeAgent.js';
 export { ChangeModel, type ChangeModelInput } from './ChangeModel.js';
 export { DeleteSession, type DeleteSessionInput } from './DeleteSession.js';
 export { ExecuteTool, type ExecuteToolInput, type ExecuteToolResult } from './ExecuteTool.js';

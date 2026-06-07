@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { UIMessage } from 'ai';
 import {
+  ChangeAgent,
   ChangeModel,
   DeleteSession,
   ExecuteToolApproval,
@@ -174,6 +175,44 @@ describe('application use cases', () => {
         modelId: 'anthropic/claude-sonnet-4',
       },
     });
+  });
+
+  it('changes the agent for an existing session', async () => {
+    const sessions = new FakeSessionRepository();
+    const eventBus = new FakeEventBus();
+    await new StartSession(sessions, eventBus).execute({
+      projectPath: '/tmp/project',
+      model: modelDTO,
+      agent: 'coder',
+    });
+
+    const result = await new ChangeAgent(
+      sessions,
+      eventBus,
+      () => new Date('2026-05-31T13:00:00.000Z'),
+    ).execute({
+      sessionId: 'session-1',
+      agent: 'plan',
+    });
+
+    expect(result.agent).toBe('plan');
+    expect((await sessions.findById(SessionId.create('session-1')))?.agent).toBe('plan');
+    expect(eventBus.events.at(-1)).toMatchObject({
+      type: 'AGENT_CHANGED',
+      payload: {
+        sessionId: 'session-1',
+        agent: 'plan',
+      },
+    });
+  });
+
+  it('fails to change the agent when the session does not exist', async () => {
+    await expect(
+      new ChangeAgent(new FakeSessionRepository(), new FakeEventBus()).execute({
+        sessionId: 'missing-session',
+        agent: 'plan',
+      }),
+    ).rejects.toThrow(/missing-session/);
   });
 
   it('lists models through the model repository port', async () => {

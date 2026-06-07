@@ -2,7 +2,7 @@ import { memo, useCallback } from 'react';
 import {
   ApprovalPrompt,
   Box,
-  Markdown,
+  MessageBubble as StormMessageBubble,
   OperationTree,
   StreamingText,
   Text,
@@ -22,6 +22,7 @@ interface MessageProps {
   message: UIMessage;
   onApprove?: (response: ApprovalResponse) => void;
   isStreaming?: boolean;
+  terminalWidth: number;
 }
 
 interface ApprovalPartProps {
@@ -60,6 +61,10 @@ function getRoleLabel(role: UIMessage['role']): string {
   return role;
 }
 
+export function getMessageContentWidth(terminalWidth: number): number {
+  return Math.max(20, terminalWidth - 6);
+}
+
 function ApprovalPart({ approvalId, title, onApprove }: ApprovalPartProps) {
   const handleApprove = useCallback(
     (approved: boolean) => {
@@ -84,29 +89,34 @@ function ApprovalPart({ approvalId, title, onApprove }: ApprovalPartProps) {
   );
 }
 
-export const MessageBubble = memo<MessageProps>(({ message, onApprove, isStreaming }) => {
+export const MessageBubble = memo<MessageProps>(({ message, onApprove, isStreaming, terminalWidth }) => {
   const { role, parts, id } = message;
   const roleColor = getRoleColor(role);
+  const contentWidth = getMessageContentWidth(terminalWidth);
 
   return (
-    <Box flexDirection="column" marginY={1}>
-      <Box flexDirection="row">
-        <Text color={roleColor} bold>
-          {getRoleLabel(role)}
-        </Text>
-        <Text color={colors.textMuted}>{` ${id}`}</Text>
-      </Box>
-
-      <Box flexDirection="column" paddingLeft={2}>
-        {parts.map((part, index) => {
+    <Box flexDirection="column" marginY={1} width={terminalWidth} maxWidth={terminalWidth} overflow="hidden">
+      {parts.map((part, index) => {
           if (part.type === 'text') {
             const partIsStreaming = Boolean(isStreaming && index === parts.length - 1);
             return (
-              <Box key={`${id}-text-${index}`} flexDirection="column">
+              <Box
+                key={`${id}-text-${index}`}
+                flexDirection="column"
+                marginBottom={1}
+                width={terminalWidth}
+                maxWidth={terminalWidth}
+                overflow="hidden"
+              >
                 {partIsStreaming ? (
                   <StreamingText text={part.text} streaming cursor />
                 ) : (
-                  <Markdown content={part.text} />
+                  <StormMessageBubble
+                    role={role}
+                    symbolColor={roleColor}
+                  >
+                    {part.text}
+                  </StormMessageBubble>
                 )}
               </Box>
             );
@@ -114,14 +124,19 @@ export const MessageBubble = memo<MessageProps>(({ message, onApprove, isStreami
 
           if (part.type === 'reasoning') {
             return (
-              <Box key={`${id}-reasoning-${index}`} flexDirection="column">
-                <Text color={colors.accentThinking} dim>
-                  reasoning
-                </Text>
-                <Text color={colors.textSecondary} dim>
-                  {part.text}
-                </Text>
-              </Box>
+              <StormMessageBubble
+                key={`${id}-reasoning-${index}`}
+                role="assistant"
+                symbol="*"
+                symbolColor={colors.accentThinking}
+                meta={`${getRoleLabel(role)} reasoning ${id}`}
+              >
+                <Box maxWidth={contentWidth} overflow="hidden">
+                  <Text wrap="wrap" color={colors.textSecondary} dim>
+                    {part.text}
+                  </Text>
+                </Box>
+              </StormMessageBubble>
             );
           }
 
@@ -180,17 +195,16 @@ export const MessageBubble = memo<MessageProps>(({ message, onApprove, isStreami
             );
           }
 
-          if (part.type === 'step-start') {
-            return null;
-          }
+        if (part.type === 'step-start') {
+          return null;
+        }
 
-          return (
-            <Text key={`${id}-part-${index}`} color={colors.textMuted}>
-              {part.type}
-            </Text>
-          );
-        })}
-      </Box>
+        return (
+          <Text key={`${id}-part-${index}`} color={colors.textMuted}>
+            {part.type}
+          </Text>
+        );
+      })}
     </Box>
   );
 });

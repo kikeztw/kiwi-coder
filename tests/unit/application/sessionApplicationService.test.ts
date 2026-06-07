@@ -144,6 +144,20 @@ describe('SessionApplicationService', () => {
     });
   });
 
+  it('changes a session agent through the application service', async () => {
+    const repository = new FakeSessionRepository();
+    const service = new SessionApplicationService(repository, new FakeEventBus());
+    await service.create({ projectPath: '/tmp/project', model: defaultModel, agent: 'coder' });
+
+    const updated = await service.changeSessionAgent({
+      sessionId: 'session-1',
+      agent: 'plan',
+    });
+
+    expect(updated.agent).toBe('plan');
+    expect(await repository.findActive()).toMatchObject({ agent: 'plan' });
+  });
+
   it('deletes sessions by id', async () => {
     const repository = new FakeSessionRepository();
     const service = new SessionApplicationService(repository, new FakeEventBus());

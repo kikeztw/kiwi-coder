@@ -5,6 +5,8 @@ import { ProcessingIndicator } from './ProcessingIndicator.js';
 import { StatusBar } from './StatusBar.js';
 import { useHandlerChat } from '../hooks/useHandlerChat.js';
 import { InputArea } from './InputArea.js';
+import { useSessionContext } from '../context/index.js';
+import { resolveAgentCommand } from '../../shared/commands/index.js';
 
 interface ChatViewProps {
   onExit: () => void;
@@ -14,6 +16,7 @@ interface ChatViewProps {
 function ChatViewInternal({ onExit, isInputFocused = true }: ChatViewProps) {
   const { width, height } = useTerminal();
   const { messages, sendMessage, addToolApprovalResponse, status, tokenCounter } = useHandlerChat();
+  const { updateAgentAndSave } = useSessionContext();
 
   const handleInputSubmit = useCallback(
     (value: string) => {
@@ -22,9 +25,20 @@ function ChatViewInternal({ onExit, isInputFocused = true }: ChatViewProps) {
         onExit();
         return;
       }
+
+      const command = resolveAgentCommand(value);
+      if (command.type === 'set-agent') {
+        if (status === 'submitted' || status === 'streaming') return;
+        void updateAgentAndSave(command.agent);
+        return;
+      }
+      if (command.type === 'unknown-command') {
+        return;
+      }
+
       sendMessage({ text: value });
     },
-    [onExit, sendMessage],
+    [onExit, sendMessage, status, updateAgentAndSave],
   );
 
   const handleApprove = useCallback(

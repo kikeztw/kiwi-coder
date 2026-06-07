@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kiwi Terminal Native Theme</title>
+    <style>
+      :root {
+        --ink: #252c4a;
+        --ink-deep: #1b2038;
+        --ink-line: #3a4165;
+        --text: #faf4ec;
+        --text-soft: #ded6cd;
+        --text-muted: #aaa2a3;
+        --rose: #d8b6af;
+        --mint: #c9d8b6;
+        --sand: #f1d7a8;
+        --error: #e3a39d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--ink);
+        color: var(--text);
+        font-family: monospace;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .page {
+        width: min(122ch, 100%);
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      .shell {
+        border: 1px solid var(--ink-line);
+        background: var(--ink-deep);
+      }
+
+      .bar,
+      .status,
+      .input {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 2ch;
+        padding: 0 1ch;
+        border-bottom: 1px solid var(--ink-line);
+        color: var(--text-soft);
+        white-space: nowrap;
+      }
+
+      .bar {
+        min-height: 3lh;
+        align-content: center;
+      }
+
+      .status {
+        border-top: 1px solid var(--ink-line);
+        border-bottom: 1px solid var(--ink-line);
+      }
+
+      .input {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        border-bottom: 0;
+        padding-top: 1lh;
+        padding-bottom: 1lh;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 32ch;
+        gap: 0;
+      }
+
+      .chat {
+        min-width: 0;
+        padding: 1lh 1ch;
+        border-right: 1px solid var(--ink-line);
+      }
+
+      .panel {
+        min-width: 0;
+        padding: 1lh 1ch;
+      }
+
+      .title {
+        color: var(--sand);
+        font-weight: 700;
+      }
+
+      .muted {
+        color: var(--text-muted);
+      }
+
+      .soft {
+        color: var(--text-soft);
+      }
+
+      .rose {
+        color: var(--rose);
+      }
+
+      .mint {
+        color: var(--mint);
+      }
+
+      .sand {
+        color: var(--sand);
+      }
+
+      .error {
+        color: var(--error);
+      }
+
+      .rule {
+        margin: 1lh 0;
+        color: var(--ink-line);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .welcome,
+      .message,
+      .toolbox,
+      .approval,
+      .state {
+        margin-bottom: 1lh;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 10ch minmax(0, 1fr);
+        gap: 1ch;
+      }
+
+      .line {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .meta {
+        color: var(--text-muted);
+      }
+
+      .role {
+        font-weight: 700;
+      }
+
+      .stamp {
+        display: block;
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+
+      .user .role {
+        color: var(--rose);
+      }
+
+      .agent .role {
+        color: var(--mint);
+      }
+
+      .tool .role,
+      .reasoning .role {
+        color: var(--sand);
+      }
+
+      .block {
+        min-width: 0;
+      }
+
+      .code {
+        display: block;
+        margin-top: 0.5lh;
+        padding: 1lh 1ch;
+        border: 1px solid var(--ink-line);
+        color: var(--text-soft);
+        white-space: pre;
+        overflow-x: auto;
+      }
+
+      .rows {
+        display: grid;
+        gap: 0.25lh;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 7ch minmax(0, 1fr) auto;
+        gap: 1ch;
+      }
+
+      .selected {
+        color: var(--sand);
+      }
+
+      .key {
+        color: var(--ink);
+        background: var(--sand);
+        padding: 0 0.5ch;
+      }
+
+      .token {
+        display: grid;
+        grid-template-columns: 10ch minmax(0, 1fr);
+        gap: 1ch;
+        margin-bottom: 0.3lh;
+      }
+
+      .swatches {
+        display: grid;
+        gap: 0.35lh;
+        margin: 1lh 0;
+      }
+
+      .swatch {
+        display: grid;
+        grid-template-columns: 8ch minmax(0, 1fr);
+        gap: 1ch;
+      }
+
+      .sample {
+        border-left: 2ch solid currentColor;
+        padding-left: 1ch;
+      }
+
+      @media (max-width: 92ch) {
+        .page {
+          padding: 8px;
+        }
+
+        .layout,
+        .bar,
+        .status {
+          grid-template-columns: 1fr;
+        }
+
+        .chat {
+          border-right: 0;
+          border-bottom: 1px solid var(--ink-line);
+        }
+
+        .panel {
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 64ch) {
+        .message {
+          grid-template-columns: 1fr;
+          gap: 0.15lh;
+        }
+
+        .stamp {
+          display: inline;
+          margin-left: 1ch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="shell" aria-label="Kiwi terminal-native theme">
+        <header class="bar">
+          <div><span class="title">Kiwi AI Assistant</span> <span class="muted">/ terminal-native theme</span></div>
+          <div class="muted">80-120 cols · mono · pastel</div>
+        </header>
+
+        <div class="layout">
+          <section class="chat" aria-label="Chat surface">
+            <div class="welcome">
+              <div class="line"><span class="sand">kiwi</span> ready in <span class="soft">react-agent-code</span></div>
+              <div class="line muted">commands: /plan  /coder  /model  /sessions  exit</div>
+            </div>
+
+            <div class="rule">────────────────────────────────────────────────────────────────────────────</div>
+
+            <article class="message user">
+              <div class="line meta"><span class="role">USER</span><span class="stamp">09:42</span></div>
+              <div class="block line">Design a terminal theme only. Keep it minimal and close to the real CLI.</div>
+            </article>
+
+            <article class="message reasoning">
+              <div class="line meta"><span class="role">THINK</span><span class="stamp">planning</span></div>
+              <div class="block line">Use color as a label, not decoration. Chat stays primary; side panel is optional and short.</div>
+            </article>
+
+            <article class="message tool">
+              <div class="line meta"><span class="role">TOOLS</span><span class="stamp">tree</span></div>
+              <div class="block rows">
+                <div class="row"><span class="mint">done</span><span>read terminal theme tokens</span><span class="muted">42ms</span></div>
+                <div class="row"><span class="sand">run</span><span>inspect message anatomy</span><span class="muted">active</span></div>
+                <div class="row"><span class="error">fail</span><span>visual check unavailable</span><span class="muted">retry</span></div>
+              </div>
+            </article>
+
+            <article class="message tool">
+              <div class="line meta"><span class="role">APPROVE</span><span class="stamp">command</span></div>
+              <div class="block approval">
+                <div class="line">Run <span class="soft">pnpm build</span> after implementation?</div>
+                <div class="line"><span class="key">Y</span> approve   <span class="key">N</span> reject</div>
+              </div>
+            </article>
+
+            <article class="message agent">
+              <div class="line meta"><span class="role">ASSIST</span><span class="stamp">streaming</span></div>
+              <div class="block line">
+                Terminal-native theme drafted with a transcript layout instead of boxed messages. Long answers can wrap naturally across the full content column while the role label stays anchored on the left.
+
+                For real usage, assistant responses may include multi-paragraph explanations, file paths, command output, and code references. This layout avoids a large bordered rectangle around all of that content, so the screen keeps feeling like a terminal transcript rather than a chat app forced into a terminal.
+                <span class="code">theme.roles = {
+  user: "#D8B6AF",
+  agent: "#C9D8B6",
+  tool: "#F1D7A8",
+  background: "#252C4A"
+}</span>
+              </div>
+            </article>
+
+            <div class="line sand">... processing latest response</div>
+          </section>
+
+          <aside class="panel" aria-label="Short terminal panel">
+            <div class="line title">THEME</div>
+            <div class="swatches">
+              <div class="swatch rose"><span>rose</span><span class="sample">user/error</span></div>
+              <div class="swatch mint"><span>mint</span><span class="sample">assistant/done</span></div>
+              <div class="swatch sand"><span>sand</span><span class="sample">tool/focus</span></div>
+            </div>
+
+            <div class="rule">────────────────────────────</div>
+
+            <div class="line title">TOKENS</div>
+            <div class="token"><span class="muted">bg</span><span>#252C4A</span></div>
+            <div class="token"><span class="muted">bgDeep</span><span>#1B2038</span></div>
+            <div class="token"><span class="muted">line</span><span>#3A4165</span></div>
+            <div class="token"><span class="muted">text</span><span>#FAF4EC</span></div>
+            <div class="token"><span class="muted">muted</span><span>#AAA2A3</span></div>
+
+            <div class="rule">────────────────────────────</div>
+
+            <div class="line title">MODEL</div>
+            <div class="rows">
+              <div class="row selected"><span>&gt;</span><span>OpenAI</span><span>12</span></div>
+              <div class="row"><span> </span><span>Anthropic</span><span class="muted">8</span></div>
+              <div class="row"><span> </span><span>Google</span><span class="muted">6</span></div>
+            </div>
+
+            <div class="rule">────────────────────────────</div>
+
+            <div class="line title">STATES</div>
+            <div class="line"><span class="mint">ready</span>  idle, no pending work</div>
+            <div class="line"><span class="sand">busy</span>   streaming or tool running</div>
+            <div class="line"><span class="rose">empty</span>  welcome + commands only</div>
+            <div class="line"><span class="error">error</span>  command failed</div>
+          </aside>
+        </div>
+
+        <footer class="status">
+          <div><span class="mint">● Ready</span> <span class="muted">Mode:</span> /plan</div>
+          <div><span class="muted">CTX:</span> 18.4k | <span class="muted">Total:</span> 42.1k | <span class="muted">Model:</span> gpt-5-codex</div>
+        </footer>
+
+        <div class="input">
+          <span class="sand">&gt;</span>
+          <span class="soft">Type a message or run /model...</span>
+          <span class="sand">█</span>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

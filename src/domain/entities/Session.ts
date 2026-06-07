@@ -74,6 +74,10 @@ export class Session {
     return Session.create({ ...this.props, model, lastActive });
   }
 
+  changeAgent(agent: string, lastActive: Date): Session {
+    return Session.create({ ...this.props, agent, lastActive });
+  }
+
   withMessageCount(messageCount: number, lastActive: Date): Session {
     return Session.create({ ...this.props, messageCount, lastActive });
   }

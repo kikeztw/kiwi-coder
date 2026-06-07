@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getToolOperationStatus } from '../../../src/presentation/terminal/components/MessageBubble.js';
+import {
+  getMessageContentWidth,
+  getToolOperationStatus,
+} from '../../../src/presentation/terminal/components/MessageBubble.js';
 
 describe('getToolOperationStatus', () => {
   it('maps streaming tool input to running', () => {
@@ -20,5 +23,12 @@ describe('getToolOperationStatus', () => {
     expect(getToolOperationStatus('input-available')).toBe('pending');
     expect(getToolOperationStatus('approval-requested')).toBe('pending');
     expect(getToolOperationStatus('unexpected')).toBe('pending');
+  });
+});
+
+describe('getMessageContentWidth', () => {
+  it('reserves gutter space while keeping a minimum readable width', () => {
+    expect(getMessageContentWidth(100)).toBe(94);
+    expect(getMessageContentWidth(10)).toBe(20);
   });
 });

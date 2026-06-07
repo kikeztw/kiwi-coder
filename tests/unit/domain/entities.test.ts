@@ -41,7 +41,7 @@ describe('domain entities', () => {
     expect(session.messageCount).toBe(0);
   });
 
-  it('returns updated session instances when changing model and message count', () => {
+  it('returns updated session instances when changing model, agent, and message count', () => {
     const session = Session.create({
       id: SessionId.create('session-1'),
       created: now,
@@ -59,10 +59,14 @@ describe('domain entities', () => {
       name: 'Claude Sonnet 4',
     });
 
-    const updated = session.changeModel(nextModel, updatedAt).withMessageCount(3, updatedAt);
+    const updated = session
+      .changeModel(nextModel, updatedAt)
+      .changeAgent('plan', updatedAt)
+      .withMessageCount(3, updatedAt);
 
     expect(updated.id.equals(session.id)).toBe(true);
     expect(updated.model.id.toString()).toBe('anthropic/claude-sonnet-4');
+    expect(updated.agent).toBe('plan');
     expect(updated.messageCount).toBe(3);
     expect(updated.lastActive).toBe(updatedAt);
   });
