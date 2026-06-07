@@ -4,11 +4,10 @@ import { colors } from '../theme/colors.js';
 
 interface InputAreaProps {
   onSubmit: (value: string) => void;
-  onExecuteCommand: (command: string) => void;
   isFocused?: boolean;
 }
 
-function InputAreaInternal({ onSubmit, onExecuteCommand, isFocused = true }: InputAreaProps) {
+function InputAreaInternal({ onSubmit, isFocused = true }: InputAreaProps) {
   const [value, setValue] = useState('');
   const [history, setHistory] = useState<string[]>([]);
 
@@ -17,14 +16,9 @@ function InputAreaInternal({ onSubmit, onExecuteCommand, isFocused = true }: Inp
       if (!v.trim()) return;
       setHistory((prev) => [...prev, v]);
       setValue('');
-
-      if (v.startsWith('/')) {
-        onExecuteCommand(v);
-      } else {
-        onSubmit(v);
-      }
+      onSubmit(v);
     },
-    [onSubmit, onExecuteCommand],
+    [onSubmit],
   );
 
   return (

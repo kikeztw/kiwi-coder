@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, useTerminal, ScrollView } from '@orchetron/storm';
+import { ScrollView, Box } from '@orchetron/storm';
 import type { ChatRequestOptions, UIMessage } from 'ai';
 import { MessageBubble } from './MessageBubble.js';
 
@@ -17,17 +17,19 @@ interface MessageListProps {
 }
 
 function MessageListInternal({ messages, onApprove, isStreaming }: MessageListProps) {
-  const { width } = useTerminal();
   return (
-    <Box flexDirection="column" width={width} flexGrow={1}>
-      <ScrollView flex={1} stickToBottom scrollbarThumbColor="#82AAFF">
-        {messages.map((message, index) => (
-          <MessageBubble
-            message={message}
-            onApprove={onApprove}
-            isStreaming={isStreaming && index === messages.length - 1}
-          />
-        ))}
+    <Box flex={1} flexDirection="column" overflow="hidden">
+      <ScrollView flex={1} scrollSpeed={1} stickToBottom>
+        <Box flexDirection="column" gap={2}>
+          {messages.map((message, index) => (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              onApprove={onApprove}
+              isStreaming={isStreaming && index === messages.length - 1}
+            />
+          ))}
+        </Box>
       </ScrollView>
     </Box>
   );

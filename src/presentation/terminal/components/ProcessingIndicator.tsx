@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Box, Text, Spinner } from '@orchetron/storm';
+import { colors } from '../theme/colors.js';
 
 interface ProcessingIndicatorProps {
   status: string;
@@ -10,9 +11,9 @@ function ProcessingIndicatorInternal({ status }: ProcessingIndicatorProps) {
     return null;
   }
   return (
-    <Box marginTop={1} paddingX={1}>
-      <Text color="cyan">
-        <Spinner type="dots" /> Processing...
+    <Box paddingX={1} flexShrink={0}>
+      <Text color={colors.textSecondary}>
+        <Spinner type="dots" /> {status === 'submitted' ? 'Waiting for model...' : 'Streaming...'}
       </Text>
     </Box>
   );

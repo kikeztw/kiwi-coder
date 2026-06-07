@@ -1,19 +1,18 @@
 import { memo, useCallback } from 'react';
-import { Box } from '@orchetron/storm';
+import { Box, useTerminal } from '@orchetron/storm';
 import { MessageList } from './MessageList.js';
 import { ProcessingIndicator } from './ProcessingIndicator.js';
 import { StatusBar } from './StatusBar.js';
-import { WelcomeScreen } from './WelcomeScreen.js';
 import { useHandlerChat } from '../hooks/useHandlerChat.js';
 import { InputArea } from './InputArea.js';
 
 interface ChatViewProps {
-  onExecuteCommand: (command: string) => void;
   onExit: () => void;
   isInputFocused?: boolean;
 }
 
-function ChatViewInternal({ onExecuteCommand, onExit, isInputFocused = true }: ChatViewProps) {
+function ChatViewInternal({ onExit, isInputFocused = true }: ChatViewProps) {
+  const { width, height } = useTerminal();
   const { messages, sendMessage, addToolApprovalResponse, status, tokenCounter } = useHandlerChat();
 
   const handleInputSubmit = useCallback(
@@ -35,12 +34,9 @@ function ChatViewInternal({ onExecuteCommand, onExit, isInputFocused = true }: C
     [addToolApprovalResponse],
   );
 
-  const showWelcome = messages.length === 0;
-
   return (
-    <Box flexDirection="column" height="100%">
-      {showWelcome && <WelcomeScreen />}
-      <Box flexGrow={1}>
+    <Box width={width} height={height} flexDirection="column" overflow="hidden">
+      <Box flex={1} flexDirection="column" overflow="hidden">
         <MessageList
           messages={messages}
           onApprove={handleApprove}
@@ -51,7 +47,6 @@ function ChatViewInternal({ onExecuteCommand, onExit, isInputFocused = true }: C
       <StatusBar tokenCounter={tokenCounter} />
       <InputArea
         onSubmit={handleInputSubmit}
-        onExecuteCommand={onExecuteCommand}
         isFocused={isInputFocused}
       />
     </Box>

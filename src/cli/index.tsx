@@ -4,7 +4,6 @@ import { resolve } from 'path';
 import { program } from 'commander';
 import { render } from '@orchetron/storm';
 import App from '../presentation/terminal/App.js';
-import { preloadModelCache } from '../presentation/terminal/services/modelsCache.js';
 
 // Parse CLI arguments
 program
@@ -15,9 +14,6 @@ program
 program.parse();
 const options = program.opts();
 const projectPath = resolve(options.path);
-
-// Kick off background fetches for model lists so /model is responsive.
-preloadModelCache();
 
 async function main() {
   try {
