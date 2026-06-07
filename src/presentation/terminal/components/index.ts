@@ -3,4 +3,5 @@ export { InputArea } from './InputArea.js';
 export { MessageBubble, MessageComponent } from './MessageBubble.js';
 export { MessageList } from './MessageList.js';
 export { ProcessingIndicator } from './ProcessingIndicator.js';
+export { ProviderSelector } from './ProviderSelector.js';
 export { StatusBar } from './StatusBar.js';

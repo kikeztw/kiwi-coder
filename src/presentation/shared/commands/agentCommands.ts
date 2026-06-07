@@ -3,6 +3,7 @@ import type { AgentMode } from '../session/index.js';
 export type AgentCommandResult =
   | { type: 'message' }
   | { type: 'set-agent'; agent: AgentMode }
+  | { type: 'show-provider-selector' }
   | { type: 'unknown-command'; command: string };
 
 export function resolveAgentCommand(input: string): AgentCommandResult {
@@ -17,6 +18,8 @@ export function resolveAgentCommand(input: string): AgentCommandResult {
       return { type: 'set-agent', agent: 'coder' };
     case 'plan':
       return { type: 'set-agent', agent: 'plan' };
+    case 'model':
+      return { type: 'show-provider-selector' };
     default:
       return { type: 'unknown-command', command: command.toLowerCase() };
   }

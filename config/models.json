@@ -1,14 +1,14 @@
 {
   "providers": {
-    "openai": {
+    "gpt": {
       "name": "OpenAI",
       "models": [
-        { "id": "openai/gpt-4o", "name": "GPT-4o", "default": true },
-        { "id": "openai/gpt-4o-mini", "name": "GPT-4o Mini" },
-        { "id": "openai/gpt-4-turbo", "name": "GPT-4 Turbo" },
-        { "id": "openai/o3-mini", "name": "o3 Mini" },
-        { "id": "openai/gpt-5.4-mini-2026-03-17", "name": "GPT-5.4 Mini" },
-        { "id": "openai/gpt-5.4-nano-2026-03-17", "name": "GPT-5.4 Nano" }
+        { "id": "gpt/gpt-4o", "name": "GPT-4o", "default": true },
+        { "id": "gpt/gpt-4o-mini", "name": "GPT-4o Mini" },
+        { "id": "gpt/gpt-4-turbo", "name": "GPT-4 Turbo" },
+        { "id": "gpt/o3-mini", "name": "o3 Mini" },
+        { "id": "gpt/gpt-5.4-mini-2026-03-17", "name": "GPT-5.4 Mini" },
+        { "id": "gpt/gpt-5.4-nano-2026-03-17", "name": "GPT-5.4 Nano" }
       ],
       "envKey": "OPENAI_API_KEY"
     },
@@ -23,15 +23,15 @@
       ],
       "envKey": "ANTHROPIC_API_KEY"
     },
-    "google": {
+    "gemini": {
       "name": "Google Generative AI",
       "models": [
-        { "id": "google/gemini-2.5-flash", "name": "Gemini 2.5 Flash", "default": true },
-        { "id": "google/gemini-2.5-pro", "name": "Gemini 2.5 Pro" },
-        { "id": "google/gemini-2.0-flash", "name": "Gemini 2.0 Flash" },
-        { "id": "google/gemini-2.0-pro", "name": "Gemini 2.0 Pro" },
-        { "id": "google/gemini-1.5-flash", "name": "Gemini 1.5 Flash" },
-        { "id": "google/gemini-1.5-pro", "name": "Gemini 1.5 Pro" }
+        { "id": "gemini/gemini-2.5-flash", "name": "Gemini 2.5 Flash", "default": true },
+        { "id": "gemini/gemini-2.5-pro", "name": "Gemini 2.5 Pro" },
+        { "id": "gemini/gemini-2.0-flash", "name": "Gemini 2.0 Flash" },
+        { "id": "gemini/gemini-2.0-pro", "name": "Gemini 2.0 Pro" },
+        { "id": "gemini/gemini-1.5-flash", "name": "Gemini 1.5 Flash" },
+        { "id": "gemini/gemini-1.5-pro", "name": "Gemini 1.5 Pro" }
       ],
       "envKey": "GOOGLE_GENERATIVE_AI_API_KEY"
     },

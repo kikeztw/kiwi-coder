@@ -10,10 +10,11 @@ import { resolveAgentCommand } from '../../shared/commands/index.js';
 
 interface ChatViewProps {
   onExit: () => void;
+  onShowProviderSelector: () => void;
   isInputFocused?: boolean;
 }
 
-function ChatViewInternal({ onExit, isInputFocused = true }: ChatViewProps) {
+function ChatViewInternal({ onExit, onShowProviderSelector, isInputFocused = true }: ChatViewProps) {
   const { width, height } = useTerminal();
   const { messages, sendMessage, addToolApprovalResponse, status, tokenCounter } = useHandlerChat();
   const { updateAgentAndSave } = useSessionContext();
@@ -35,10 +36,15 @@ function ChatViewInternal({ onExit, isInputFocused = true }: ChatViewProps) {
       if (command.type === 'unknown-command') {
         return;
       }
+      if (command.type === 'show-provider-selector') {
+        if (status === 'submitted' || status === 'streaming') return;
+        onShowProviderSelector();
+        return;
+      }
 
       sendMessage({ text: value });
     },
-    [onExit, sendMessage, status, updateAgentAndSave],
+    [onExit, onShowProviderSelector, sendMessage, status, updateAgentAndSave],
   );
 
   const handleApprove = useCallback(

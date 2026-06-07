@@ -13,6 +13,25 @@ import { logDebug } from '../cli/utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const PROVIDER_ALIASES: Record<string, string> = {
+  openai: 'gpt',
+  google: 'gemini',
+};
+
+export const PROVIDER_ORDER = ['openrouter', 'gemini', 'gpt', 'anthropic'] as const;
+export type ProviderId = (typeof PROVIDER_ORDER)[number];
+
+export function normalizeProviderId(provider: string): string {
+  const key = provider.toLowerCase();
+  return PROVIDER_ALIASES[key] ?? key;
+}
+
+export function normalizeModelId(modelId: string): string {
+  const parts = modelId.split('/');
+  if (parts.length < 2) return modelId;
+  return [normalizeProviderId(parts[0]), ...parts.slice(1)].join('/');
+}
+
 // Load .env from project root (not CWD) - for backward compatibility
 const envPath = join(__dirname, '../../.env');
 logDebug(`Looking for .env at: ${envPath}`);
@@ -37,7 +56,7 @@ if (existsSync(cwdEnvPath) && envPath !== cwdEnvPath) {
 
 // Helper to get API key from environment variables
 function getApiKey(provider: string): string | undefined {
-  const providerInfo = modelRegistry.providers[provider.toLowerCase()];
+  const providerInfo = modelRegistry.providers[normalizeProviderId(provider)];
   return providerInfo ? process.env[providerInfo.envKey] : undefined;
 }
 
@@ -62,22 +81,23 @@ export interface ModelRegistry {
 }
 
 export function getAvailableProviders(): string[] {
-  return Object.keys(modelRegistry.providers);
+  return PROVIDER_ORDER.filter((provider) => modelRegistry.providers[provider]);
 }
 
 export function getAvailableModels(provider: string): ModelInfo[] {
-  const providerInfo = modelRegistry.providers[provider.toLowerCase()];
+  const providerInfo = modelRegistry.providers[normalizeProviderId(provider)];
   return providerInfo?.models || [];
 }
 
 export function validateProviderModel(provider: string, model: string): { valid: boolean; error?: string } {
-  const providerInfo = modelRegistry.providers[provider.toLowerCase()];
+  const normalizedModel = normalizeModelId(model);
+  const providerInfo = modelRegistry.providers[normalizeProviderId(provider)];
   
   if (!providerInfo) {
     return { valid: false, error: `Unknown provider: ${provider}. Available: ${getAvailableProviders().join(', ')}` };
   }
 
-  const modelExists = providerInfo.models.some((m: ModelInfo) => m.id === model);
+  const modelExists = providerInfo.models.some((m: ModelInfo) => m.id === normalizedModel);
   if (!modelExists) {
     const available = providerInfo.models.map((m: ModelInfo) => m.id).join(', ');
     return { valid: false, error: `Unknown model: ${model} for ${provider}. Available: ${available}` };
@@ -93,7 +113,7 @@ export function validateProviderModel(provider: string, model: string): { valid:
 }
 
 export function getDefaultModel(provider: string): string | undefined {
-  const providerInfo = modelRegistry.providers[provider.toLowerCase()];
+  const providerInfo = modelRegistry.providers[normalizeProviderId(provider)];
   const defaultModel = providerInfo?.models.find((m: ModelInfo) => m.default);
   return defaultModel?.id || providerInfo?.models[0]?.id;
 }
@@ -115,28 +135,30 @@ export function getAllModels(): Array<ModelInfo & { provider: string }> {
 
 export function parseModelId(modelId: string): { provider: string; model: string } | null {
   const parts = modelId.split('/');
-  if (parts.length !== 2) return null;
-  return { provider: parts[0], model: parts[1] };
+  const model = parts.slice(1).join('/');
+  if (parts.length < 2 || !parts[0] || !model) return null;
+  return { provider: normalizeProviderId(parts[0]), model };
 }
 
 export function getProviderForModel(modelId: string): string | undefined {
   const allModels = getAllModels();
-  const found = allModels.find(m => m.id === modelId);
+  const found = allModels.find(m => m.id === normalizeModelId(modelId));
   return found?.provider;
 }
 
 export function validateModel(modelId: string): { valid: boolean; error?: string; provider?: string; modelName?: string } {
-  const parsed = parseModelId(modelId);
+  const normalizedModelId = normalizeModelId(modelId);
+  const parsed = parseModelId(normalizedModelId);
   if (!parsed) {
     return { valid: false, error: `Invalid model format: ${modelId}. Use format: provider/model-name` };
   }
   
-  const providerInfo = modelRegistry.providers[parsed.provider.toLowerCase()];
+  const providerInfo = modelRegistry.providers[parsed.provider];
   if (!providerInfo) {
     return { valid: false, error: `Unknown provider: ${parsed.provider}` };
   }
   
-  const modelExists = providerInfo.models.some((m: ModelInfo) => m.id === modelId);
+  const modelExists = providerInfo.models.some((m: ModelInfo) => m.id === normalizedModelId);
   if (!modelExists) {
     return { valid: false, error: `Unknown model: ${modelId}` };
   }
@@ -166,7 +188,7 @@ export async function fetchGeminiModels(apiKey: string): Promise<ModelInfo[]> {
   return data.models
     .filter(m => m.supportedGenerationMethods.includes('generateContent'))
     .map(m => ({
-      id: `google/${m.name.replace('models/', '')}`,
+      id: `gemini/${m.name.replace('models/', '')}`,
       name: m.displayName,
     }));
 }
@@ -205,14 +227,15 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<ModelInfo[]
 }
 
 export function getModel(provider: string, modelName: string): LanguageModel {
-  const apiKey = getApiKey(provider);
+  const normalizedProvider = normalizeProviderId(provider);
+  const apiKey = getApiKey(normalizedProvider);
   
   if (!apiKey) {
-    throw new Error(`Missing API key for ${provider}. Set ${provider.toUpperCase()}_API_KEY in your .env file.`);
+    throw new Error(`Missing API key for ${normalizedProvider}. Set ${normalizedProvider.toUpperCase()}_API_KEY in your .env file.`);
   }
   
-  switch (provider.toLowerCase()) {
-    case 'openai': {
+  switch (normalizedProvider) {
+    case 'gpt': {
       const openai = createOpenAI({ apiKey });
       return openai(modelName);
     }
@@ -220,7 +243,7 @@ export function getModel(provider: string, modelName: string): LanguageModel {
       const anthropic = createAnthropic({ apiKey });
       return anthropic(modelName);
     }
-    case 'google': {
+    case 'gemini': {
       const google = createGoogleGenerativeAI({ apiKey });
       return google(modelName);
     }
@@ -229,6 +252,6 @@ export function getModel(provider: string, modelName: string): LanguageModel {
       return openrouter(modelName);
     }
     default:
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(`Unsupported provider: ${normalizedProvider}`);
   }
 }

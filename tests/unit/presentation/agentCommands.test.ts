@@ -15,6 +15,10 @@ describe('resolveAgentCommand', () => {
     expect(resolveAgentCommand('/plan now')).toEqual({ type: 'set-agent', agent: 'plan' });
   });
 
+  it('opens provider selection with /model', () => {
+    expect(resolveAgentCommand('/model')).toEqual({ type: 'show-provider-selector' });
+  });
+
   it('keeps /code and unknown commands explicit', () => {
     expect(resolveAgentCommand('/code')).toEqual({ type: 'unknown-command', command: 'code' });
     expect(resolveAgentCommand('/wat')).toEqual({ type: 'unknown-command', command: 'wat' });

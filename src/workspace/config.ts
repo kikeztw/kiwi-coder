@@ -34,7 +34,7 @@ export interface WorkspaceConfig {
 const DEFAULT_VERSION = '1.0';
 
 export function getDefaultConfig(projectPath: string): WorkspaceConfig {
-  const provider = process.env.MODEL_PROVIDER || 'openai';
+  const provider = process.env.MODEL_PROVIDER || 'gpt';
   const model = process.env.MODEL_NAME || 'gpt-4o';
   
   return {

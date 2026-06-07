@@ -15,9 +15,9 @@ import { createApplicationServices } from '../../../infrastructure/index.js';
 export type AgentMode = 'coder' | 'plan';
 
 const DEFAULT_MODEL = {
-  provider: process.env.MODEL_PROVIDER || 'openai',
+  provider: process.env.MODEL_PROVIDER || 'gpt',
   model: process.env.MODEL_NAME || 'gpt-4o',
-  modelId: `${process.env.MODEL_PROVIDER || 'openai'}/${process.env.MODEL_NAME || 'gpt-4o'}`,
+  modelId: `${process.env.MODEL_PROVIDER || 'gpt'}/${process.env.MODEL_NAME || 'gpt-4o'}`,
   name: process.env.MODEL_NAME || 'gpt-4o',
 };
 
@@ -109,7 +109,7 @@ export function SessionProvider({ children, projectPath, initialAgent = 'coder' 
     id: currentSession?.id || randomUUID(),
     startTime: currentSession ? new Date(currentSession.created) : new Date(),
     status: 'idle',
-    modelProvider: currentSession?.model.provider || 'openai',
+    modelProvider: currentSession?.model.provider || 'gpt',
     modelName: currentSession?.model.model || 'gpt-4o',
   };
 
